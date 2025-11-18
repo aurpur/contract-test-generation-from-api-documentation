@@ -1,0 +1,49 @@
+# Metrics Configuration for Research Questions
+metrics:
+  # RQ1: Oracle Generation
+  rq1_oracle_generation:
+    precision: true
+    completeness: true
+    accuracy: true
+    ground_truth_comparison: true
+    
+  # RQ2: Gap Detection
+  rq2_gap_detection:
+    inconsistency_rate: true
+    detection_accuracy: true
+    false_positive_rate: true
+    
+  # RQ3: Test Validity
+  rq3_test_validity:
+    correctness:
+      syntax_valid: true
+      assertions_valid: true
+      compilation_success: true
+    readability:
+      cyclomatic_complexity: true
+      maintainability_index: true
+      lines_of_code: true
+    maintainability:
+      code_duplication: true
+      test_coverage: true
+      
+  # RQ4: LLM Performance
+  rq4_llm_performance:
+    models: [gpt4, claude, gemini, mistral, llama]
+    compare_metrics:
+      - accuracy
+      - execution_time
+      - cost
+      - coherence_score
+      
+  # RQ5: Incomplete Documentation
+  rq5_incomplete_docs:
+    completeness_levels: [100, 75, 50, 25]
+    track_inference_quality: true
+
+# Thresholds
+thresholds:
+  min_oracle_accuracy: 0.8
+  max_inconsistency_rate: 0.1
+  min_test_coverage: 0.7
+  min_maintainability_index: 65

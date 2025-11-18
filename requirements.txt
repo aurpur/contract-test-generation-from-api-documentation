@@ -1,0 +1,54 @@
+# Core dependencies
+python-dotenv==1.0.0
+pydantic==2.5.0
+pyyaml==6.0.1
+
+# LLM clients
+openai>=0.28.1
+anthropic>=0.8.0
+google-generativeai>=0.3.0
+ollama>=0.1.6
+
+# Orchestration frameworks
+langgraph>=0.0.20
+langchain>=0.0.335
+langchain-core>=0.1.10
+
+# Database
+psycopg2-binary==2.9.9
+redis==5.0.1
+sqlalchemy==2.0.23
+
+# Code generation
+jinja2==3.1.2
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1
+
+# Data analysis (for experiments)
+pandas>=2.2.0
+numpy>=1.26.2
+matplotlib>=3.8.2
+seaborn>=0.13.0
+jupyter==1.0.0
+notebook==7.0.6
+
+# Monitoring & Logging
+mlflow==2.9.2
+loguru==0.7.2
+prometheus-client==0.19.0
+
+# Quality & Metrics
+radon==6.0.1
+pylint==3.0.3
+
+# HTTP requests
+requests==2.31.0
+httpx==0.25.2
+
+# Development tools
+black==23.12.1
+isort==5.13.2
+mypy==1.7.1
