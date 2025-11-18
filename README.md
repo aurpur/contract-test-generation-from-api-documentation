@@ -1,5 +1,8 @@
 # Contract Test Generation from API Documentation
 
+**Auteur** : Aurel IKAMA HONEY  
+**Projet de Recherche** : Génération Automatique de Tests de Contrat
+
 ## Description
 
 Ce projet automatise la génération de tests de contrat à partir de documentation d'API sous forme de collection Bruno. Il permet de créer automatiquement des tests qui vérifient que l'implémentation d'une API respecte sa spécification, assurant ainsi la cohérence entre la documentation et le comportement réel de l'API.
@@ -57,7 +60,9 @@ En cas d'échec, une boucle de réparation adaptative transmet les traces d'erre
 - **Python 3.9.10** : Langage principal pour l'orchestration
 - **LangGraph 0.4.0** : Framework multi-agent avec checkpointing (2.1.2)
 - **LangChain 0.2.17** avec LangChain-Core 0.2.43 : Orchestration LLM
-- **OpenAI 2.8.1, Anthropic 0.73.0, Google Generative AI 0.8.5, Ollama 0.1.7** : Clients LLM pour GPT-4, Claude Sonnet 4, Gemini, Mistral, Llama 3.1 (RQ4)
+- **Clients LLM Cloud (optionnels)** : OpenAI 2.8.1, Anthropic 0.73.0, Google Generative AI 0.8.5 pour GPT-4, Claude Sonnet 4, Gemini (RQ4)
+- **Ollama 0.12.11** : Serveur local pour Mistral et Llama 3.1 (gratuit, sans API key)
+- **Mode Développement Économique** : Possibilité de désactiver les modèles cloud (OpenAI, Anthropic, Google) pour un coût de 0€ en utilisant uniquement Ollama
 
 ### Parsing & Analyse
 - **Parser Bruno personnalisé** : Extraction des fichiers `.bru`
@@ -131,4 +136,60 @@ Ce projet vise à répondre aux questions de recherche suivantes :
 - Boucle de réparation adaptative pour l'amélioration continue
 - Support du format de documentation Bruno
 - Système de validation et métriques pour l'évaluation empirique
+- **Mode développement économique** : Désactivation des modèles cloud pour un coût de 0€
+
+## Configuration
+
+### Mode Développement vs Production
+
+Le projet supporte deux modes de fonctionnement pour optimiser les coûts :
+
+#### Mode Développement (ENABLE_CLOUD_MODELS=false)
+- **Coût : 0€** - Utilise uniquement Ollama (modèles locaux)
+- Modèles disponibles : Mistral, Llama 3.1
+- Idéal pour le développement, tests locaux et expérimentations
+- Pas besoin de clés API cloud
+- Tous les agents utilisent automatiquement Ollama comme fallback
+
+#### Mode Production (ENABLE_CLOUD_MODELS=true)
+- Accès aux modèles cloud : GPT-4, Claude Sonnet 4, Gemini
+- Meilleure performance pour les tâches complexes
+- Nécessite les clés API : OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY
+- Coût variable selon l'utilisation
+
+### Configuration des Modèles
+
+Modifiez la variable `ENABLE_CLOUD_MODELS` dans le fichier `.env` :
+
+```bash
+# Mode Développement (gratuit, Ollama uniquement)
+ENABLE_CLOUD_MODELS=false
+
+# Mode Production (cloud + Ollama)
+ENABLE_CLOUD_MODELS=true
+```
+
+Lorsque `ENABLE_CLOUD_MODELS=false`, le système :
+1. Désactive automatiquement les modèles OpenAI, Anthropic et Google
+2. Utilise Ollama (Mistral ou Llama) comme fallback pour tous les agents
+3. Charge uniquement les modèles locaux en mémoire
+4. Ne nécessite pas de clés API cloud
+
+### Prérequis
+
+**Ollama (Obligatoire pour mode développement)** :
+- Installation : Téléchargez depuis [ollama.ai](https://ollama.ai)
+- Modèles requis : `mistral:latest` et `llama3.1:latest`
+- Commandes :
+  ```bash
+  ollama pull mistral
+  ollama pull llama3.1
+  ```
+
+**Clés API Cloud (Optionnelles, uniquement si ENABLE_CLOUD_MODELS=true)** :
+- OpenAI : [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- Anthropic : [console.anthropic.com](https://console.anthropic.com)
+- Google : [makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
+
+Voir [docs/OLLAMA_SETUP.md](docs/OLLAMA_SETUP.md) pour plus de détails sur la configuration Ollama.
 

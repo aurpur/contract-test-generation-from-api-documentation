@@ -1,5 +1,7 @@
 # Plan d'Action - Contract Test Generation from API Documentation
 
+**Auteur** : Aurel IKAMA HONEY
+
 ## Phase 1 : Setup Initial (Semaine 1)
 
 ### 1.1 Infrastructure de Base
@@ -11,9 +13,12 @@
 
 ### 1.2 Configuration
 - [x] Créer les fichiers de configuration YAML
-- [ ] Setup des clés API pour les LLMs (GPT-4, Claude, Gemini, Mistral, Llama) - **Manuel**
+- [x] Configurer Ollama pour Mistral et Llama (local, sans API key)
+- [ ] Setup des clés API pour les LLMs cloud (GPT-4, Claude, Gemini) - **Manuel**
 - [x] Configurer PostgreSQL et Redis
 - [x] Setup du logging centralisé
+- [x] Script de vérification Ollama (`scripts/verify_ollama.py`)
+- [x] Documentation Ollama (`docs/OLLAMA_SETUP.md`)
 
 ## Phase 2 : Parser Bruno (Semaine 2)
 

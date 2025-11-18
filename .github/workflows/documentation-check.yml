@@ -1,0 +1,148 @@
+name: Documentation Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - master
+      - develop
+
+jobs:
+  check-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Check for code changes
+        id: code-changes
+        run: |
+          # Check if there are Python code changes
+          CODE_CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(py|yaml|yml|json)$' || true)
+          if [ -n "$CODE_CHANGES" ]; then
+            echo "has_code_changes=true" >> $GITHUB_OUTPUT
+            echo "Code changes detected:"
+            echo "$CODE_CHANGES"
+          else
+            echo "has_code_changes=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Check for documentation changes
+        id: doc-changes
+        if: steps.code-changes.outputs.has_code_changes == 'true'
+        run: |
+          # Check if there are documentation changes
+          DOC_CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(md)$|docs/' || true)
+          if [ -n "$DOC_CHANGES" ]; then
+            echo "has_doc_changes=true" >> $GITHUB_OUTPUT
+            echo "Documentation changes detected:"
+            echo "$DOC_CHANGES"
+          else
+            echo "has_doc_changes=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Warn if no documentation updated
+        if: |
+          steps.code-changes.outputs.has_code_changes == 'true' &&
+          steps.doc-changes.outputs.has_doc_changes == 'false'
+        run: |
+          echo "::warning::⚠️ Code changes detected but no documentation updated!"
+          echo "::warning::Please update the relevant documentation:"
+          echo "::warning::  - README.md for user-facing changes"
+          echo "::warning::  - docs/ for technical documentation"
+          echo "::warning::  - Docstrings in the code"
+          echo "::warning::  - .env.example for new environment variables"
+          exit 0  # Warning only, don't fail the build
+      
+      - name: Check PR description for documentation checklist
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const body = pullRequest.body || '';
+            
+            // Check if documentation section exists
+            const hasDocSection = body.includes('Documentation mise à jour') || 
+                                 body.includes('Documentation');
+            
+            if (!hasDocSection) {
+              core.warning('⚠️ La section "Documentation mise à jour" est manquante dans la description de la PR');
+              core.warning('Veuillez utiliser le template de PR qui inclut cette section');
+            }
+            
+            // Check for common documentation files mentions
+            const docFiles = [
+              'README.md',
+              'docs/',
+              'docstring',
+              '.env.example',
+              'ACTION_PLAN.md'
+            ];
+            
+            const mentionedDocs = docFiles.filter(file => 
+              body.toLowerCase().includes(file.toLowerCase())
+            );
+            
+            if (mentionedDocs.length > 0) {
+              core.info('✅ Documentation mentions found: ' + mentionedDocs.join(', '));
+            }
+      
+      - name: Comment on PR if needed
+        if: |
+          steps.code-changes.outputs.has_code_changes == 'true' &&
+          steps.doc-changes.outputs.has_doc_changes == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const message = `## 📝 Rappel : Documentation Manquante
+            
+            ⚠️ Des changements de code ont été détectés mais aucune mise à jour de documentation n'a été trouvée.
+            
+            ### Règle du Projet
+            
+            **Toute modification de code DOIT être accompagnée d'une mise à jour de la documentation appropriée.**
+            
+            ### Actions Requises
+            
+            Veuillez mettre à jour les fichiers suivants selon vos changements :
+            
+            - [ ] \`README.md\` - Si changements affectent l'utilisation
+            - [ ] \`docs/ACTION_PLAN.md\` - Pour tracker la progression
+            - [ ] \`docs/PROJECT_STRUCTURE.md\` - Si structure modifiée
+            - [ ] Docstrings Python - Dans le code modifié
+            - [ ] \`.env.example\` - Si nouvelles variables d'environnement
+            - [ ] \`scripts/README.md\` - Si scripts ajoutés/modifiés
+            - [ ] Documentation technique dans \`docs/\` - Si nécessaire
+            
+            ### Référence
+            
+            Voir [Guide de Contribution](.github/CONTRIBUTING.md) pour plus de détails.
+            
+            ---
+            
+            **Auteur du Projet** : Aurel IKAMA HONEY
+            
+            *Ce commentaire est généré automatiquement par le workflow de vérification de documentation.*`;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
+      
+      - name: Success message
+        if: |
+          steps.code-changes.outputs.has_code_changes == 'false' ||
+          steps.doc-changes.outputs.has_doc_changes == 'true'
+        run: |
+          echo "✅ Documentation check passed!"
+          echo "Either no code changes or documentation was updated."
