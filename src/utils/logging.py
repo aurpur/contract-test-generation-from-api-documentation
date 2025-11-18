@@ -1,6 +1,8 @@
 """
 Logging configuration for the contract test generation system.
 Provides structured logging with rotation and different log levels.
+
+Author: Aurel IKAMA HONEY
 """
 import sys
 import os

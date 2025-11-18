@@ -1,5 +1,7 @@
 """
 Helper utilities for the contract test generation system.
+
+Author: Aurel IKAMA HONEY
 """
 import json
 from typing import Any, Dict, Optional

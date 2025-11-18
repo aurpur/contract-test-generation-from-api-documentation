@@ -20,14 +20,15 @@ llm:
       max_tokens: 4096
     
     mistral:
-      provider: mistral
-      model: mistral-large-latest
+      provider: ollama
+      model: mistral:latest
       temperature: 0.2
       max_tokens: 4096
+      base_url: http://localhost:11434
     
     llama:
       provider: ollama
-      model: llama3.1:70b
+      model: llama3.1:latest
       temperature: 0.2
       max_tokens: 4096
       base_url: http://localhost:11434

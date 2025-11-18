@@ -1,6 +1,7 @@
-"""
-Unified LLM client for interacting with different language models.
+"""Unified LLM client for interacting with different language models.
 Supports OpenAI, Anthropic, Google, Mistral, and Ollama (Llama).
+
+Author: Aurel IKAMA HONEY
 """
 import os
 from typing import Optional, Dict, Any, List

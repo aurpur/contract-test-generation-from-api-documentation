@@ -1,5 +1,7 @@
 # Structure du Projet
 
+**Auteur** : Aurel IKAMA HONEY
+
 ```
 contract-test-generation-from-api-documentation/
 ├── README.md

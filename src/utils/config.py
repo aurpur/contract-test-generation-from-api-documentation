@@ -1,6 +1,8 @@
 """
 Configuration loader for the contract test generation system.
 Loads and validates configuration from YAML files and environment variables.
+
+Author: Aurel IKAMA HONEY
 """
 import os
 import yaml
@@ -95,17 +97,42 @@ def load_config() -> Config:
     metrics_config_path = config_dir / "metrics_config.yaml"
     metrics_data = load_yaml_config(metrics_config_path) if metrics_config_path.exists() else {}
     
+    # Check if cloud models are enabled (cost optimization)
+    enable_cloud_models = os.getenv("ENABLE_CLOUD_MODELS", "false").lower() == "true"
+    cloud_providers = {"openai", "anthropic", "google"}
+    
     # Parse LLM models
     llm_models = {}
+    ollama_fallback = None
+    
     if "llm" in llm_data and "models" in llm_data["llm"]:
         for name, model_config in llm_data["llm"]["models"].items():
+            provider = model_config.get("provider", "")
+            
+            # Skip cloud models if disabled
+            if not enable_cloud_models and provider in cloud_providers:
+                continue
+            
             llm_models[name] = LLMConfig(**model_config)
+            
+            # Find first Ollama model as fallback
+            if provider == "ollama" and ollama_fallback is None:
+                ollama_fallback = name
     
-    # Parse agents
+    # Parse agents and apply fallback if needed
     agents = {}
     if "agents" in agents_data:
         for name, agent_config in agents_data["agents"].items():
             agents[name] = AgentConfig(**agent_config)
+    
+    # Update default models to use Ollama fallback if cloud is disabled
+    if not enable_cloud_models and ollama_fallback and "llm" in llm_data:
+        default_models = llm_data["llm"].get("default_models", {})
+        for agent_name, model_name in default_models.items():
+            model_config = llm_data["llm"]["models"].get(model_name, {})
+            if model_config.get("provider") in cloud_providers:
+                # Update to use Ollama fallback
+                llm_data["llm"]["default_models"][agent_name] = ollama_fallback
     
     # Create main config
     config = Config(
