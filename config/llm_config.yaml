@@ -1,0 +1,46 @@
+# LLM Configuration
+llm:
+  models:
+    gpt4:
+      provider: openai
+      model: gpt-4-turbo-preview
+      temperature: 0.2
+      max_tokens: 4096
+    
+    claude:
+      provider: anthropic
+      model: claude-3-sonnet-20240229
+      temperature: 0.2
+      max_tokens: 4096
+    
+    gemini:
+      provider: google
+      model: gemini-pro
+      temperature: 0.2
+      max_tokens: 4096
+    
+    mistral:
+      provider: mistral
+      model: mistral-large-latest
+      temperature: 0.2
+      max_tokens: 4096
+    
+    llama:
+      provider: ollama
+      model: llama3.1:70b
+      temperature: 0.2
+      max_tokens: 4096
+      base_url: http://localhost:11434
+
+  # Default model for each agent
+  default_models:
+    inductor: gpt4
+    oracle: claude
+    contractor: gpt4
+    runner: gpt4
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  backoff_factor: 2
+  initial_delay: 1

@@ -1,0 +1,37 @@
+# Agent Configuration
+agents:
+  inductor:
+    name: "Inductor Agent"
+    description: "Extracts context from Bruno collections"
+    max_retries: 3
+    timeout: 120
+    
+  oracle:
+    name: "Oracle Agent"
+    description: "Derives validation rules and oracles"
+    max_retries: 3
+    timeout: 180
+    consensus:
+      enabled: true
+      min_agreement: 0.7
+      models: [gpt4, claude]
+    
+  contractor:
+    name: "Contractor Agent"
+    description: "Generates Rest-Assured test code"
+    max_retries: 3
+    timeout: 150
+    
+  runner:
+    name: "Runner Agent"
+    description: "Executes tests and collects metrics"
+    max_retries: 2
+    timeout: 300
+
+# Workflow Configuration
+workflow:
+  type: sequential  # sequential, parallel
+  feedback_loop:
+    enabled: true
+    max_iterations: 5
+    convergence_threshold: 0.95
