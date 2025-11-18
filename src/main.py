@@ -1,5 +1,7 @@
 """
 Main entry point for the Contract Test Generation system.
+
+Author: Aurel IKAMA HONEY
 """
 import sys
 from pathlib import Path
