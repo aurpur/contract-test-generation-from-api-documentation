@@ -16,6 +16,7 @@ from .factory import AgentFactory, AgentOrchestrator, create_agent_system
 from .inductor import InductorAgent
 from .oracle import OracleAgent
 from .contractor import ContractorAgent
+from .runner import RunnerAgent
 
 __all__ = [
     "BaseAgent",
@@ -27,4 +28,5 @@ __all__ = [
     "InductorAgent",
     "OracleAgent",
     "ContractorAgent",
+    "RunnerAgent",
 ]
