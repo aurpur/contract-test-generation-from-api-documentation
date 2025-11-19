@@ -1,0 +1,132 @@
+# language: en
+@api @{{ method|lower }} @{{ endpoint_name }}
+Feature: {{ feature_title }}
+  {{ feature_description }}
+
+  Background:
+    Given the API base URL is "{{ base_url }}"
+    {% if auth_type %}
+    And the following authentication is configured:
+      | Type   | {{ auth_type }} |
+      {% if auth_type == "Bearer" %}
+      | Token  | {{ auth_token }} |
+      {% elif auth_type == "Basic" %}
+      | Username | {{ auth_username }} |
+      | Password | {{ auth_password }} |
+      {% elif auth_type == "ApiKey" %}
+      | Header | {{ auth_header_name }} |
+      | Value  | {{ auth_api_key }} |
+      {% endif %}
+    {% endif %}
+
+  Scenario: {{ scenario_title }}
+    {% if scenario_description %}
+    """
+    {{ scenario_description }}
+    """
+    {% endif %}
+    
+    # Setup phase
+    {% if headers %}
+    Given the following headers are set:
+      {% for header_name, header_value in headers.items() %}
+      | {{ header_name }} | {{ header_value }} |
+      {% endfor %}
+    {% endif %}
+    
+    {% if query_params %}
+    And the following query parameters are set:
+      {% for param_name, param_value in query_params.items() %}
+      | {{ param_name }} | {{ param_value }} |
+      {% endfor %}
+    {% endif %}
+    
+    {% if path_params %}
+    And the following path parameters are set:
+      {% for param_name, param_value in path_params.items() %}
+      | {{ param_name }} | {{ param_value }} |
+      {% endfor %}
+    {% endif %}
+    
+    {% if request_body %}
+    And the request body is:
+      """json
+      {{ request_body | tojson(indent=2) }}
+      """
+    {% endif %}
+    
+    # Action phase
+    When I send a {{ method }} request to "{{ endpoint_path }}"
+    
+    # Assertion phase
+    Then the response status code should be {{ expected_status_code }}
+    {% if expected_response_time_ms %}
+    And the response time should be less than {{ expected_response_time_ms }} ms
+    {% endif %}
+    
+    {% if required_headers %}
+    And the response should have the following headers:
+      {% for header in required_headers %}
+      | {{ header }} |
+      {% endfor %}
+    {% endif %}
+    
+    {% if header_constraints %}
+    And the response headers should satisfy:
+      {% for header_name, constraint in header_constraints.items() %}
+      | {{ header_name }} | {{ constraint.constraint_type }} | {{ constraint.expected_value }} |
+      {% endfor %}
+    {% endif %}
+    
+    {% if expected_schema %}
+    And the response body should match the schema:
+      """json
+      {{ expected_schema | tojson(indent=2) }}
+      """
+    {% endif %}
+    
+    {% if jsonpath_assertions %}
+    And the response body should satisfy the following JSONPath assertions:
+      {% for assertion in jsonpath_assertions %}
+      | {{ assertion.path }} | {{ assertion.constraint_type }} | {{ assertion.expected_value }} |
+      {% endfor %}
+    {% endif %}
+    
+    {% if business_rules %}
+    And the following business rules should be satisfied:
+      {% for rule in business_rules %}
+      """
+      {{ rule.description }}
+      Rule: {{ rule.rule }}
+      """
+      {% endfor %}
+    {% endif %}
+    
+    {% if side_effects %}
+    And the following side effects should be verified:
+      {% for effect in side_effects %}
+      """
+      {{ effect.description }}
+      Check: {{ effect.check }}
+      """
+      {% endfor %}
+    {% endif %}
+
+  @error-handling
+  Scenario: {{ scenario_title }} - Error handling
+    Given the same test configuration as above
+    When an error occurs during the request
+    Then the error should be handled gracefully
+    And appropriate error messages should be logged
+    
+  {% if oracle_confidence and oracle_confidence < 0.8 %}
+  @low-confidence
+  Scenario: {{ scenario_title }} - Low confidence oracle
+    """
+    This scenario was generated with low confidence ({{ oracle_confidence }})
+    Manual review and validation is recommended
+    """
+    Given this is a generated scenario that requires review
+    Then a human tester should validate the assertions
+    And update the scenario if necessary
+  {% endif %}

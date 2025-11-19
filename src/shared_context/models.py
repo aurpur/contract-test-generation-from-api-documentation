@@ -134,6 +134,10 @@ class GeneratedTest(BaseModel):
     test_method_name: str = Field(..., description="Java test method name")
     test_code: str = Field(..., description="Complete Java test code")
     
+    # Gherkin feature
+    feature_file_name: Optional[str] = Field(default=None, description="Gherkin feature file name")
+    feature_content: Optional[str] = Field(default=None, description="Complete Gherkin feature content")
+    
     # Test configuration
     setup_code: Optional[str] = Field(default=None)
     teardown_code: Optional[str] = Field(default=None)

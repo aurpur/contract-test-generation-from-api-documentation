@@ -359,6 +359,11 @@ class ContractorAgent(BaseAgent):
             # Format code
             formatted_code = self._format_java_code(test_code)
             
+            # Generate Gherkin scenario
+            feature_file_name, feature_content = self._generate_gherkin_scenario(
+                context, oracle, template_vars
+            )
+            
             # Create GeneratedTest
             generated_test = GeneratedTest(
                 endpoint_id=context.id,
@@ -366,11 +371,13 @@ class ContractorAgent(BaseAgent):
                 test_class_name=template_vars["class_name"],
                 test_method_name=template_vars["method_name"],
                 test_code=formatted_code,
+                feature_file_name=feature_file_name,
+                feature_content=feature_content,
                 setup_code=None,
                 teardown_code=None,
                 dependencies=["io.rest-assured:rest-assured:5.3.2"],
                 generated_at=datetime.utcnow(),
-                llm_model=None,
+                llm_model=oracle.llm_model,
                 template_version="1.0.0",
             )
             
@@ -599,6 +606,109 @@ class ContractorAgent(BaseAgent):
             count += len(re.findall(pattern, code))
         
         return count
+    
+    def _generate_gherkin_scenario(
+        self, context: EndpointContext, oracle: Oracle, template_vars: Dict[str, Any]
+    ) -> tuple[str, str]:
+        """
+        Generate Gherkin feature file from endpoint context and oracle.
+        
+        Args:
+            context: Endpoint context
+            oracle: Oracle with validations
+            template_vars: Template variables (reused from Java generation)
+            
+        Returns:
+            Tuple of (feature_file_name, feature_content)
+        """
+        try:
+            # Build Gherkin-specific template variables
+            gherkin_vars = {
+                **template_vars,
+                "feature_title": self._generate_feature_title(context),
+                "feature_description": self._generate_feature_description(context, oracle),
+                "scenario_title": self._generate_scenario_title(context),
+                "scenario_description": context.description or "",
+                "expected_status_code": oracle.status_code,
+                "expected_response_time_ms": oracle.expected_response_time_ms,
+                "oracle_confidence": oracle.confidence_score,
+            }
+            
+            # Render Gherkin template
+            template = self.jinja_env.get_template("gherkin_scenario.feature.j2")
+            feature_content = template.render(**gherkin_vars)
+            
+            # Generate feature file name
+            feature_file_name = self._generate_feature_file_name(context)
+            
+            return feature_file_name, feature_content
+            
+        except Exception as e:
+            logger.error(f"Failed to generate Gherkin scenario: {e}")
+            return None, None
+    
+    def _generate_feature_title(self, context: EndpointContext) -> str:
+        """
+        Generate feature title for Gherkin scenario.
+        
+        Args:
+            context: Endpoint context
+            
+        Returns:
+            Feature title
+        """
+        method = context.method.value
+        name = context.name.replace('_', ' ').title()
+        return f"{method} {name} API"
+    
+    def _generate_feature_description(self, context: EndpointContext, oracle: Oracle) -> str:
+        """
+        Generate feature description for Gherkin scenario.
+        
+        Args:
+            context: Endpoint context
+            oracle: Oracle
+            
+        Returns:
+            Feature description
+        """
+        description = context.description or f"Test {context.method.value} {context.name} endpoint"
+        
+        # Add oracle metadata
+        if oracle.llm_model:
+            description += f"\n  Generated using {oracle.llm_model}"
+        if oracle.confidence_score:
+            description += f" (confidence: {oracle.confidence_score:.2f})"
+        
+        return description
+    
+    def _generate_scenario_title(self, context: EndpointContext) -> str:
+        """
+        Generate scenario title for Gherkin scenario.
+        
+        Args:
+            context: Endpoint context
+            
+        Returns:
+            Scenario title
+        """
+        method = context.method.value
+        name = context.name.replace('_', ' ').title()
+        return f"Successfully {method.lower()} {name}"
+    
+    def _generate_feature_file_name(self, context: EndpointContext) -> str:
+        """
+        Generate feature file name for Gherkin scenario.
+        
+        Args:
+            context: Endpoint context
+            
+        Returns:
+            Feature file name (e.g., "get-users.feature")
+        """
+        method = context.method.value.lower()
+        name = context.name.lower().replace('_', '-')
+        return f"{method}-{name}.feature"
     
     # Message handlers
     

@@ -694,6 +694,105 @@ class TestMessageHandlers:
         message_router.send.assert_called_once()
 
 
+@pytest.mark.asyncio
+class TestGherkinGeneration:
+    """Test Gherkin scenario generation."""
+    
+    async def test_generate_gherkin_scenario(
+        self, agent_config, context_manager, message_router, event_bus, task_queue,
+        sample_endpoint_context, sample_oracle
+    ):
+        """Test Gherkin scenario generation."""
+        agent = ContractorAgent(
+            config=agent_config,
+            context_manager=context_manager,
+            message_router=message_router,
+            event_bus=event_bus,
+            task_queue=task_queue,
+        )
+        
+        # Build template vars
+        template_vars = agent._build_template_variables(
+            sample_endpoint_context, sample_oracle
+        )
+        
+        # Generate Gherkin
+        feature_file_name, feature_content = agent._generate_gherkin_scenario(
+            sample_endpoint_context, sample_oracle, template_vars
+        )
+        
+        assert feature_file_name is not None
+        assert feature_file_name.endswith(".feature")
+        assert feature_content is not None
+        assert "Feature:" in feature_content
+        assert "Scenario:" in feature_content
+        assert "Given" in feature_content
+        assert "When" in feature_content
+        assert "Then" in feature_content
+    
+    async def test_generate_test_includes_gherkin(
+        self, agent_config, context_manager, message_router, event_bus, task_queue,
+        sample_endpoint_context, sample_oracle
+    ):
+        """Test that generated test includes Gherkin feature."""
+        agent = ContractorAgent(
+            config=agent_config,
+            context_manager=context_manager,
+            message_router=message_router,
+            event_bus=event_bus,
+            task_queue=task_queue,
+        )
+        
+        result = agent._generate_test_from_oracle(
+            sample_endpoint_context, sample_oracle
+        )
+        
+        assert result is not None
+        assert result.feature_file_name is not None
+        assert result.feature_content is not None
+        assert result.feature_file_name.endswith(".feature")
+        assert "Feature:" in result.feature_content
+    
+    def test_generate_feature_title(
+        self, agent_config, context_manager, message_router, event_bus, task_queue,
+        sample_endpoint_context
+    ):
+        """Test feature title generation."""
+        agent = ContractorAgent(
+            config=agent_config,
+            context_manager=context_manager,
+            message_router=message_router,
+            event_bus=event_bus,
+            task_queue=task_queue,
+        )
+        
+        title = agent._generate_feature_title(sample_endpoint_context)
+        
+        assert title is not None
+        assert "GET" in title
+        assert "Users" in title or "API" in title
+    
+    def test_generate_feature_file_name(
+        self, agent_config, context_manager, message_router, event_bus, task_queue,
+        sample_endpoint_context
+    ):
+        """Test feature file name generation."""
+        agent = ContractorAgent(
+            config=agent_config,
+            context_manager=context_manager,
+            message_router=message_router,
+            event_bus=event_bus,
+            task_queue=task_queue,
+        )
+        
+        file_name = agent._generate_feature_file_name(sample_endpoint_context)
+        
+        assert file_name is not None
+        assert file_name.endswith(".feature")
+        assert "get" in file_name.lower()
+        assert "-" in file_name  # Should use kebab-case
+
+
 class TestAgentRepr:
     """Test agent string representation."""
     

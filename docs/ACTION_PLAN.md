@@ -214,23 +214,30 @@
 - [x] Documentation
 
 **Résultats Phase 4.4:**
-- ✅ `src/agents/contractor.py` (662 lignes) - ContractorAgent class
+- ✅ `src/agents/contractor.py` (662 lignes → 783 lignes) - ContractorAgent class
 - ✅ `src/code_generation/templates/rest_assured_test.java.j2` (168 lignes) - Template Rest-Assured
 - ✅ `src/code_generation/templates/pom.xml.j2` (123 lignes) - Template Maven POM
-- ✅ `tests/test_agents/test_contractor.py` (716 lignes) - Unit tests
-- ✅ 1,669 lignes total (1,076 production + 593 tests)
-- ✅ Commit 8f3a706 créé et pushé
+- ✅ `src/code_generation/templates/gherkin_scenario.feature.j2` (145 lignes) - Template Gherkin **[NOUVEAU]**
+- ✅ `tests/test_agents/test_contractor.py` (716 lignes → 813 lignes) - Unit tests (26 tests)
+- ✅ `src/shared_context/models.py` - Ajout champs Gherkin à GeneratedTest **[NOUVEAU]**
+- ✅ 1,669 lignes total → 1,941 lignes (1,216 production + 725 tests)
+- ✅ Commits: 8f3a706 (initial), [nouveau commit] (Gherkin integration)
 
 **Fonctionnalités:**
 - ✅ process_task() pour "generate_tests", "generate_single_test", "generate_pom" task types
-- ✅ Jinja2 environment avec templates Rest-Assured et pom.xml
-- ✅ Template variable mapping (context + oracle → Java)
+- ✅ Jinja2 environment avec templates Rest-Assured, pom.xml et Gherkin **[NOUVEAU]**
+- ✅ Template variable mapping (context + oracle → Java + Gherkin) **[ÉTENDU]**
+- ✅ **Génération simultanée Java + Gherkin** (alignement garanti) **[NOUVEAU]**
 - ✅ Injection oracles as assertions (status, headers, schema, JSONPath, business rules)
 - ✅ Support authentification (Bearer, Basic, API Key)
 - ✅ Java code formatting (remove excessive blank lines)
+- ✅ **Gherkin scenarios avec Given/When/Then** (BDD format) **[NOUVEAU]**
+- ✅ **Feature files (.feature) générés automatiquement** **[NOUVEAU]**
+- ✅ **Scénarios d'erreur et low-confidence tagging** **[NOUVEAU]**
 - ✅ Event publishing: "tests_generated"
 - ✅ Metrics: tests_generated, lines_of_code, assertions_count, pom_generated
 - ✅ Class/method name generation (PascalCase/camelCase)
+- ✅ **Feature file name generation (kebab-case)** **[NOUVEAU]**
 - ✅ URL splitting (base_url + path)
 - ✅ Path parameters handling
 - ✅ Response schema validation (object/array types, property types)
