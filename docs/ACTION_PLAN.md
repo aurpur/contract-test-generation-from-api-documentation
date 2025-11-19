@@ -111,164 +111,226 @@
 - ✅ 1,089 lignes de tests (53 tests)
 - ✅ Documentation complète (PHASE_3.2_SUMMARY.md)
 
-## Phase 4 : Agent Inductor (Semaine 4)
+**PR #5:** Créé pour merge Phase 3 vers develop
 
-### 4.1 Développement
-- [ ] Implémenter `base_agent.py` (classe abstraite)
-- [ ] Développer `inductor.py`
-- [ ] Intégrer client LLM (`llm_client.py`)
+## Phase 4 : Multi-Agent System (Semaine 4-8)
+
+### 4.1 BaseAgent Infrastructure ✅
+- [x] Implémenter `base_agent.py` (classe abstraite)
+- [x] Développer `factory.py` (AgentFactory + AgentOrchestrator)
+- [x] Lifecycle management (start, stop, pause, resume)
+- [x] Message handling (send, receive, register handlers)
+- [x] Task processing (submit, process, retry logic)
+- [x] Event pub/sub (publish, subscribe)
+- [x] Metrics collection
+- [x] Tests unitaires (16/23 passing)
+- [x] Documentation complète
+
+**Résultats Phase 4.1:**
+- ✅ `src/agents/base_agent.py` (685 lignes) - BaseAgent abstract class
+- ✅ `src/agents/factory.py` (365 lignes) - Factory + Orchestrator
+- ✅ `tests/test_agents/test_base_agent.py` (613 lignes) - Unit tests
+- ✅ 1,663 lignes total (1,050 production + 613 tests)
+- ✅ Integration avec Phase 3 validée
+- ✅ Documentation: `docs/PHASE_4.1_SUMMARY.md`
+- ✅ 2 commits créés et pushés sur feature/phase-4-agents
+
+**Fonctionnalités:**
+- ✅ Abstract BaseAgent avec lifecycle complet
+- ✅ AgentState enum (7 états: IDLE→STARTING→RUNNING→PAUSED→STOPPING→STOPPED→ERROR)
+- ✅ AgentConfig pour configuration flexible
+- ✅ Message routing avec MessageRouter (Phase 3)
+- ✅ Task queue avec priorités et retry
+- ✅ Event bus pour pub/sub
+- ✅ Metrics: tasks_processed, success/fail, messages, errors, active_tasks
+- ✅ Graceful shutdown avec timeout
+- ✅ Concurrency control (max_concurrent_tasks)
+- ✅ Error handling et recovery
+
+### 4.2 Agent Inductor (Semaine 4)
+- [ ] Implémenter `inductor.py` (hérite de BaseAgent)
+- [ ] Intégrer BrunoParser existant (Phase 2)
+- [ ] Extraction contexte des endpoints
+- [ ] Stockage dans ContextManager
 - [ ] Prompts engineering pour l'induction
 - [ ] Tests avec différents LLMs
+- [ ] Tests unitaires (>80% coverage)
+- [ ] Documentation
 
-### 4.2 Validation
-- [ ] Tester extraction du contexte
-- [ ] Mesurer la complétude (RQ5)
-- [ ] Gérer la documentation incomplète
+**Tâches détaillées:**
+- [ ] process_task() pour "extract_context" task type
+- [ ] Message handlers pour extraction requests
+- [ ] Integration avec BrunoParser (Phase 2)
+- [ ] LLM prompts pour context enrichment
+- [ ] Event publishing: "context_extracted"
+- [ ] Metrics: contexts_extracted, endpoints_parsed, llm_calls
 
-## Phase 5 : Agent Oracle (Semaine 5)
-
-### 5.1 Développement
-- [ ] Implémenter `oracle.py`
+### 4.3 Agent Oracle (Semaine 5)
+- [ ] Implémenter `oracle.py` (hérite de BaseAgent)
 - [ ] Dérivation des règles de validation
 - [ ] Génération des oracles (status codes, headers, schemas)
 - [ ] Consensus multi-LLM
 - [ ] Tests unitaires
+- [ ] Documentation
+
+**Tâches détaillées:**
+- [ ] process_task() pour "derive_oracles" task type
+- [ ] Multi-LLM consensus mechanism
+- [ ] Oracle quality validation
+- [ ] Stockage oracles dans ContextManager
+- [ ] Event publishing: "oracles_derived"
+- [ ] Metrics: oracles_generated, consensus_votes, quality_scores
+
+### 4.4 Agent Contractor (Semaine 6)
+- [ ] Implémenter `contractor.py` (hérite de BaseAgent)
+- [ ] Créer templates Jinja2 pour Rest-Assured
+- [ ] Génération code Java avec oracles
+- [ ] Formateur de code Java
+- [ ] Génération `pom.xml` dynamique
+- [ ] Tests unitaires
+- [ ] Documentation
+
+**Tâches détaillées:**
+- [ ] process_task() pour "generate_code" task type
+- [ ] Jinja2 templates pour Rest-Assured
+- [ ] Injection oracles as assertions
+- [ ] Java code formatting
+- [ ] Event publishing: "code_generated"
+- [ ] Metrics: tests_generated, lines_of_code, assertions_count
+
+### 4.5 Agent Runner (Semaine 7)
+- [ ] Implémenter `runner.py` (hérite de BaseAgent)
+- [ ] Implémenter `maven_runner.py`
+- [ ] Parser les résultats JUnit
+- [ ] Collecte des métriques
+- [ ] Feedback loop pour regeneration
+- [ ] Gestion des timeouts et erreurs
+- [ ] Tests unitaires
+- [ ] Documentation
+
+**Tâches détaillées:**
+- [ ] process_task() pour "execute_tests" task type
+- [ ] Maven execution wrapper
+- [ ] JUnit XML parsing
+- [ ] Failure analysis
+- [ ] Event publishing: "tests_executed"
+- [ ] Metrics: tests_run, passed, failed, execution_time
+
+### 4.6 Integration & End-to-End Tests (Semaine 8)
+- [ ] Workflow complet: Inductor→Oracle→Contractor→Runner
+- [ ] Tests end-to-end pipeline
+- [ ] Tests feedback loop (failure→regeneration)
+- [ ] Tests multi-LLM consensus
+- [ ] Validation RQ1-RQ5
+- [ ] Performance benchmarking
+- [ ] Documentation workflow complet
+
+**Validation:**
+- [ ] Tester extraction du contexte (Inductor)
+- [ ] Mesurer précision oracles (RQ1)
+- [ ] Détecter incohérences (RQ2)
+- [ ] Mesurer qualité code (RQ3)
+- [ ] Comparer LLMs (RQ4)
+- [ ] Mesurer impact complétude (RQ5)
+
+## Phase 5 : Validation & Métriques (Semaine 9-10)
+
+### 5.1 Implémentation Métriques
+- [ ] `oracle_metrics.py` (RQ1 - Précision oracles)
+- [ ] `inconsistency_detector.py` (RQ2 - Cohérence oracles/code)
+- [ ] `test_quality_analyzer.py` (RQ3 - Qualité code généré)
+- [ ] `llm_comparator.py` (RQ4 - Comparaison LLMs)
+- [ ] `completeness_analyzer.py` (RQ5 - Impact complétude)
 
 ### 5.2 Validation (RQ1)
-- [ ] Mesurer précision des oracles (`oracle_metrics.py`)
+- [ ] Mesurer précision des oracles
 - [ ] Mesurer complétude des oracles
 - [ ] Comparer avec oracles manuels (ground truth)
 
-## Phase 6 : Agent Contractor (Semaine 6)
-
-### 6.1 Génération de Code
-- [ ] Créer templates Jinja2 pour Rest-Assured
-- [ ] Implémenter `contractor.py`
-- [ ] Implémenter `generator.py`
-- [ ] Formateur de code Java (`java_formatter.py`)
-- [ ] Génération `pom.xml` dynamique
-
-### 6.2 Validation (RQ2)
-- [ ] Détecter incohérences oracles/code (`inconsistency_detector.py`)
+### 5.3 Validation (RQ2)
+- [ ] Détecter incohérences oracles/code
 - [ ] Tests de cohérence
 - [ ] Validation syntaxique Java
 
-## Phase 7 : Agent Runner (Semaine 7)
-
-### 7.1 Exécution
-- [ ] Implémenter `runner.py`
-- [ ] Implémenter `maven_runner.py`
-- [ ] Parser les résultats JUnit (`results_parser.py`)
-- [ ] Collecte des métriques
-- [ ] Gestion des timeouts et erreurs
-
-### 7.2 Feedback Loop
-- [ ] Implémenter `feedback_loop.py`
-- [ ] Transmission des erreurs aux agents amont
-- [ ] Raffinement itératif
-- [ ] Condition d'arrêt (convergence/max iterations)
-
-## Phase 8 : Orchestration (Semaine 8)
-
-### 8.1 Workflow
-- [ ] Implémenter workflow LangGraph/CrewAI
-- [ ] Séquençage des agents (Inductor → Oracle → Contractor → Runner)
-- [ ] Gestion des états
-- [ ] Parallélisation quand possible
-
-### 8.2 Communication
-- [ ] Implémenter `communication.py`
-- [ ] Message passing entre agents
-- [ ] Event-driven architecture
-
-## Phase 9 : Validation & Métriques (Semaine 9-10)
-
-### 9.1 Implémentation Métriques
-- [ ] `oracle_metrics.py` (RQ1)
-- [ ] `inconsistency_detector.py` (RQ2)
-- [ ] `test_quality_analyzer.py` (RQ3)
-- [ ] `llm_comparator.py` (RQ4)
-- [ ] `completeness_analyzer.py` (RQ5)
-
-### 9.2 Qualité du Code (RQ3)
+### 5.4 Qualité du Code (RQ3)
 - [ ] Métriques de correction (assertions valides)
 - [ ] Métriques de lisibilité (complexité cyclomatique)
 - [ ] Métriques de maintenabilité (duplication, structure)
 - [ ] Intégration SonarQube
 
-## Phase 10 : Expérimentations (Semaine 11-12)
+## Phase 6 : Expérimentations (Semaine 11-12)
 
-### 10.1 Datasets
+### 6.1 Datasets
 - [ ] Collecter collections Bruno variées
 - [ ] Créer documentation incomplète (RQ5)
 - [ ] Annoter ground truth
 - [ ] Diviser train/test sets
 
-### 10.2 Notebooks Jupyter
+### 6.2 Notebooks Jupyter
 - [ ] `rq1_oracle_analysis.ipynb`
 - [ ] `rq2_inconsistency_study.ipynb`
 - [ ] `rq3_quality_evaluation.ipynb`
 - [ ] `rq4_llm_comparison.ipynb`
 - [ ] `rq5_completeness_impact.ipynb`
 
-### 10.3 Expériences
+### 6.3 Expériences
 - [ ] Exécuter pour chaque LLM (GPT-4, Claude, Gemini, Mistral, Llama)
 - [ ] Varier complétude documentation (100%, 75%, 50%, 25%)
 - [ ] Collecter métriques (précision, recall, F1, temps)
 - [ ] Analyse statistique (moyennes, écart-types, tests)
 
-## Phase 11 : Monitoring & Reporting (Semaine 13)
+## Phase 7 : Monitoring & Reporting (Semaine 13)
 
-### 11.1 Monitoring
+### 7.1 Monitoring
 - [ ] Setup Prometheus + Grafana
 - [ ] Dashboards métriques temps réel
 - [ ] Setup MLflow pour tracking
 - [ ] Elasticsearch pour logs
 
-### 11.2 Reporting
+### 7.2 Reporting
 - [ ] Scripts de génération de rapports
 - [ ] Visualisations (Matplotlib/Seaborn)
 - [ ] Tableaux comparatifs
 - [ ] Export LaTeX pour publication
 
-## Phase 12 : Tests & Documentation (Semaine 14)
+## Phase 8 : Tests & Documentation (Semaine 14)
 
-### 12.1 Tests
+### 8.1 Tests
 - [ ] Tests unitaires (coverage > 80%)
 - [ ] Tests d'intégration
 - [ ] Tests end-to-end
 - [ ] Tests de performance (benchmarks)
 
-### 12.2 Documentation
+### 8.2 Documentation
 - [ ] Documentation API (Sphinx)
 - [ ] `architecture.md`
 - [ ] `api_reference.md`
 - [ ] `research_methodology.md`
 - [ ] Tutoriels et exemples
 
-## Phase 13 : Optimisation & Déploiement (Semaine 15)
+## Phase 9 : Optimisation & Déploiement (Semaine 15)
 
-### 13.1 Optimisation
+### 9.1 Optimisation
 - [ ] Profiling performance
 - [ ] Optimisation requêtes LLM (caching)
 - [ ] Parallélisation agents
 - [ ] Réduction coûts API
 
-### 13.2 Déploiement
+### 9.2 Déploiement
 - [ ] CI/CD GitHub Actions
 - [ ] Déploiement Docker
 - [ ] Documentation déploiement
 - [ ] Script `run_experiment.py`
 
-## Phase 14 : Analyse Finale (Semaine 16)
+## Phase 10 : Analyse Finale (Semaine 16)
 
-### 14.1 Résultats
+### 10.1 Résultats
 - [ ] Compilation résultats RQ1-RQ5
 - [ ] Analyse comparative LLMs
 - [ ] Identification limitations
 - [ ] Recommandations
 
-### 14.2 Publication
+### 10.2 Publication
 - [ ] Rédaction article scientifique
 - [ ] Préparation présentation
 - [ ] Release v1.0
@@ -278,46 +340,56 @@
 
 ## Livrables par Phase
 
-**Phase 1-2** : Parser Bruno fonctionnel
-**Phase 3-4** : Agent Inductor + contexte
-**Phase 5-6** : Agents Oracle + Contractor
-**Phase 7-8** : Agent Runner + orchestration complète
-**Phase 9-10** : Système de validation + expérimentations
-**Phase 11-12** : Monitoring + tests complets
-**Phase 13-14** : Projet déployé + résultats recherche
+**Phase 1-2** : Parser Bruno fonctionnel ✅
+**Phase 3** : Storage + Communication Infrastructure ✅
+**Phase 4** : Multi-Agent System (BaseAgent + 4 agents + integration) 🔄
+**Phase 5** : Système de validation + métriques RQ1-RQ5
+**Phase 6** : Expérimentations + notebooks
+**Phase 7** : Monitoring + reporting
+**Phase 8** : Tests complets + documentation
+**Phase 9** : Optimisation + déploiement
+**Phase 10** : Analyse finale + publication
 
 ---
 
 ## Priorisation
 
 ### Critique (MVP)
-1. Parser Bruno
-2. Agent Inductor
-3. Agent Oracle
-4. Agent Contractor
-5. Agent Runner
-6. Workflow basique
+1. ✅ Parser Bruno
+2. ✅ Infrastructure Phase 3 (Storage + Communication)
+3. ✅ BaseAgent Infrastructure (Phase 4.1)
+4. 🔄 Agent Inductor (Phase 4.2)
+5. 🔄 Agent Oracle (Phase 4.3)
+6. 🔄 Agent Contractor (Phase 4.4)
+7. 🔄 Agent Runner (Phase 4.5)
+8. 🔄 Integration & E2E tests (Phase 4.6)
 
 ### Important
-7. Feedback loop
-8. Métriques RQ1-RQ5
-9. Expérimentations
-10. Tests complets
+9. Feedback loop (intégré dans Runner)
+10. Métriques RQ1-RQ5 (Phase 5)
+11. Expérimentations (Phase 6)
+12. Tests complets (Phase 8)
 
 ### Nice to have
-11. Monitoring avancé
-12. Optimisations performance
-13. Interface utilisateur
+13. Monitoring avancé (Phase 7)
+14. Optimisations performance (Phase 9)
+15. Interface utilisateur (futur)
 
 ---
 
-## Timeline
+## Timeline Révisée
 
-- **Semaines 1-2** : Setup + Parser
-- **Semaines 3-4** : Contexte + Agent Inductor
-- **Semaines 5-6** : Agents Oracle + Contractor
-- **Semaines 7-8** : Agent Runner + Orchestration
-- **Semaines 9-10** : Validation + Expérimentations
-- **Semaines 11-12** : Expériences complètes
-- **Semaines 13-14** : Tests + Documentation
-- **Semaines 15-16** : Optimisation + Publication
+- **Semaines 1-2** : ✅ Setup + Parser Bruno
+- **Semaine 3** : ✅ Phase 3 (Storage + Communication)
+- **Semaines 4-8** : 🔄 Phase 4 (Multi-Agent System)
+  - Semaine 4 : ✅ BaseAgent (4.1) + 🔄 Inductor (4.2)
+  - Semaine 5 : Oracle (4.3)
+  - Semaine 6 : Contractor (4.4)
+  - Semaine 7 : Runner (4.5)
+  - Semaine 8 : Integration & E2E (4.6)
+- **Semaines 9-10** : Métriques + Validation (Phase 5)
+- **Semaines 11-12** : Expérimentations (Phase 6)
+- **Semaine 13** : Monitoring + Reporting (Phase 7)
+- **Semaine 14** : Tests + Documentation (Phase 8)
+- **Semaine 15** : Optimisation + Déploiement (Phase 9)
+- **Semaine 16** : Analyse finale + Publication (Phase 10)
