@@ -71,7 +71,7 @@ class OracleAgent(BaseAgent):
         super().__init__(
             config=config,
             context_manager=context_manager,
-            message_router=message_router,
+            router=message_router,
             event_bus=event_bus,
             task_queue=task_queue,
         )

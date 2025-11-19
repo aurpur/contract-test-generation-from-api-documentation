@@ -1,0 +1,12 @@
+[mutmut]
+paths_to_mutate=src/
+runner=python -m pytest tests/ -x --tb=short
+tests_dir=tests/
+dict_synonyms=Struct, NamedStruct
+
+[tool:pytest]
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+addopts = --ignore=scripts/

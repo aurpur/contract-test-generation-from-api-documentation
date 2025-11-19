@@ -524,8 +524,8 @@ class BaseAgent(ABC):
                     continue
                 
                 # Get next task for this agent
-                task = await self.task_queue.dequeue(
-                    agent_type=self.agent_type,
+                task = await asyncio.wait_for(
+                    self.task_queue.dequeue(agent_type=self.agent_type),
                     timeout=1.0,
                 )
                 

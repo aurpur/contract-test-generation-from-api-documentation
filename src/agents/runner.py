@@ -311,7 +311,7 @@ class RunnerAgent(BaseAgent):
         super().__init__(
             config=config,
             context_manager=context_manager,
-            message_router=message_router,
+            router=message_router,
             event_bus=event_bus,
             task_queue=task_queue,
         )
@@ -322,11 +322,11 @@ class RunnerAgent(BaseAgent):
         self.timeout = timeout
         
         # Metrics
-        self.metrics["tests_run"] = 0
-        self.metrics["tests_passed"] = 0
-        self.metrics["tests_failed"] = 0
-        self.metrics["execution_time_ms"] = 0
-        self.metrics["retries"] = 0
+        self._metrics["tests_run"] = 0
+        self._metrics["tests_passed"] = 0
+        self._metrics["tests_failed"] = 0
+        self._metrics["execution_time_ms"] = 0
+        self._metrics["retries"] = 0
     
     def register_handlers(self) -> None:
         """Register message handlers for test execution."""
@@ -423,10 +423,10 @@ class RunnerAgent(BaseAgent):
                 execution_results.append(result)
         
         # Update metrics
-        self.metrics["tests_run"] += metrics.get("tests_run", 0)
-        self.metrics["tests_passed"] += metrics.get("tests_passed", 0)
-        self.metrics["tests_failed"] += metrics.get("tests_failed", 0)
-        self.metrics["execution_time_ms"] += metrics.get("execution_time_ms", 0)
+        self._metrics["tests_run"] += metrics.get("tests_run", 0)
+        self._metrics["tests_passed"] += metrics.get("tests_passed", 0)
+        self._metrics["tests_failed"] += metrics.get("tests_failed", 0)
+        self._metrics["execution_time_ms"] += metrics.get("execution_time_ms", 0)
         
         # Analyze failures
         failed_tests = [r for r in execution_results if not r.passed]
@@ -498,12 +498,12 @@ class RunnerAgent(BaseAgent):
         if result:
             await self.context_manager.store_execution_result(result)
             
-            self.metrics["tests_run"] += 1
+            self._metrics["tests_run"] += 1
             if result.passed:
-                self.metrics["tests_passed"] += 1
+                self._metrics["tests_passed"] += 1
             else:
-                self.metrics["tests_failed"] += 1
-            self.metrics["execution_time_ms"] += result.execution_time_ms
+                self._metrics["tests_failed"] += 1
+            self._metrics["execution_time_ms"] += result.execution_time_ms
             
             return {
                 "status": "success",
@@ -777,7 +777,7 @@ class RunnerAgent(BaseAgent):
             
             await self.message_router.send(message)
             
-            self.metrics["retries"] += 1
+            self._metrics["retries"] += 1
     
     # Message handlers
     
@@ -837,7 +837,7 @@ class RunnerAgent(BaseAgent):
         return (
             f"RunnerAgent(state={self.state.value}, "
             f"active_tasks={len(self.active_tasks)}, "
-            f"tests_run={self.metrics['tests_run']}, "
-            f"tests_passed={self.metrics['tests_passed']}, "
-            f"tests_failed={self.metrics['tests_failed']})"
+            f"tests_run={self._metrics['tests_run']}, "
+            f"tests_passed={self._metrics['tests_passed']}, "
+            f"tests_failed={self._metrics['tests_failed']})"
         )

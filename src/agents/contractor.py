@@ -79,7 +79,7 @@ class ContractorAgent(BaseAgent):
         super().__init__(
             config=config,
             context_manager=context_manager,
-            message_router=message_router,
+            router=message_router,
             event_bus=event_bus,
             task_queue=task_queue,
         )
@@ -100,10 +100,10 @@ class ContractorAgent(BaseAgent):
         )
         
         # Metrics
-        self.metrics["tests_generated"] = 0
-        self.metrics["lines_of_code"] = 0
-        self.metrics["assertions_count"] = 0
-        self.metrics["pom_generated"] = 0
+        self._metrics["tests_generated"] = 0
+        self._metrics["lines_of_code"] = 0
+        self._metrics["assertions_count"] = 0
+        self._metrics["pom_generated"] = 0
     
     def register_handlers(self) -> None:
         """Register message handlers for code generation."""
@@ -207,9 +207,9 @@ class ContractorAgent(BaseAgent):
                     total_lines += lines
                     total_assertions += assertions
                     
-                    self.metrics["tests_generated"] += 1
-                    self.metrics["lines_of_code"] += lines
-                    self.metrics["assertions_count"] += assertions
+                    self._metrics["tests_generated"] += 1
+                    self._metrics["lines_of_code"] += lines
+                    self._metrics["assertions_count"] += assertions
                     
                     logger.info(
                         f"Test generated for {context.name}: "
@@ -288,9 +288,9 @@ class ContractorAgent(BaseAgent):
         lines = len(generated_test.test_code.split('\n'))
         assertions = self._count_assertions(generated_test.test_code)
         
-        self.metrics["tests_generated"] += 1
-        self.metrics["lines_of_code"] += lines
-        self.metrics["assertions_count"] += assertions
+        self._metrics["tests_generated"] += 1
+        self._metrics["lines_of_code"] += lines
+        self._metrics["assertions_count"] += assertions
         
         return {
             "status": "success",
@@ -328,7 +328,7 @@ class ContractorAgent(BaseAgent):
         template = self.jinja_env.get_template("pom.xml.j2")
         pom_content = template.render(**template_vars)
         
-        self.metrics["pom_generated"] += 1
+        self._metrics["pom_generated"] += 1
         
         return {
             "status": "success",
@@ -768,5 +768,5 @@ class ContractorAgent(BaseAgent):
         return (
             f"ContractorAgent(state={self.state.value}, "
             f"active_tasks={len(self.active_tasks)}, "
-            f"tests_generated={self.metrics['tests_generated']})"
+            f"tests_generated={self._metrics['tests_generated']})"
         )

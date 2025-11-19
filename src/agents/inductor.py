@@ -96,10 +96,10 @@ class InductorAgent(BaseAgent):
         self.register_message_handler("parse_collection", self._handle_parse_collection_message)
         self.register_message_handler("enrich_context", self._handle_enrich_context_message)
     
-    def _subscribe_to_events(self):
+    async def _subscribe_to_events(self):
         """Subscribe to relevant events."""
         # Subscribe to workflow events if needed
-        self.subscribe_to_event("workflow_started", self._on_workflow_started)
+        await self.subscribe_to_event("workflow_started", self._on_workflow_started)
     
     async def _on_workflow_started(self, event_data: Dict[str, Any]):
         """Handle workflow started event."""

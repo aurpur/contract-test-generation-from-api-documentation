@@ -552,18 +552,17 @@ async def create_storage_backend() -> PostgreSQLRedisStorage:
     """
     config = get_config()
     
-    # Get database configuration
-    db_config = config.config.get("database", {})
-    postgres_url = db_config.get(
-        "postgres_url",
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/contract_tests"
-    )
+    # Get database configuration  
+    postgres_url = getattr(config.database, 'url', 'sqlite+aiosqlite:///:memory:')
     
-    redis_config = config.config.get("redis", {})
-    redis_host = redis_config.get("host", "localhost")
-    redis_port = redis_config.get("port", 6379)
-    redis_db = redis_config.get("db", 0)
-    cache_ttl = redis_config.get("cache_ttl", 3600)
+    # Parse redis URL - format: redis://host:port/db
+    redis_url = getattr(config.redis, 'url', 'redis://localhost:6379/0')
+    redis_parts = redis_url.replace('redis://', '').split('/')
+    host_port = redis_parts[0].split(':')
+    redis_host = host_port[0] if len(host_port) > 0 else 'localhost'
+    redis_port = int(host_port[1]) if len(host_port) > 1 else 6379
+    redis_db = int(redis_parts[1]) if len(redis_parts) > 1 else 0
+    cache_ttl = 3600  # Default cache TTL
     
     # Create storage
     storage = PostgreSQLRedisStorage(
