@@ -204,22 +204,40 @@
 - ✅ Fallback oracle sans LLM
 - ✅ Validation status code, headers, schema, business rules
 
-### 4.4 Agent Contractor (Semaine 6)
-- [ ] Implémenter `contractor.py` (hérite de BaseAgent)
-- [ ] Créer templates Jinja2 pour Rest-Assured
-- [ ] Génération code Java avec oracles
-- [ ] Formateur de code Java
-- [ ] Génération `pom.xml` dynamique
-- [ ] Tests unitaires
-- [ ] Documentation
+### 4.4 Agent Contractor (Semaine 6) ✅
+- [x] Implémenter `contractor.py` (hérite de BaseAgent)
+- [x] Créer templates Jinja2 pour Rest-Assured
+- [x] Génération code Java avec oracles
+- [x] Formateur de code Java
+- [x] Génération `pom.xml` dynamique
+- [x] Tests unitaires (22 tests)
+- [x] Documentation
 
-**Tâches détaillées:**
-- [ ] process_task() pour "generate_code" task type
-- [ ] Jinja2 templates pour Rest-Assured
-- [ ] Injection oracles as assertions
-- [ ] Java code formatting
-- [ ] Event publishing: "code_generated"
-- [ ] Metrics: tests_generated, lines_of_code, assertions_count
+**Résultats Phase 4.4:**
+- ✅ `src/agents/contractor.py` (662 lignes) - ContractorAgent class
+- ✅ `src/code_generation/templates/rest_assured_test.java.j2` (168 lignes) - Template Rest-Assured
+- ✅ `src/code_generation/templates/pom.xml.j2` (123 lignes) - Template Maven POM
+- ✅ `tests/test_agents/test_contractor.py` (716 lignes) - Unit tests
+- ✅ 1,669 lignes total (1,076 production + 593 tests)
+- ✅ Commit 8f3a706 créé et pushé
+
+**Fonctionnalités:**
+- ✅ process_task() pour "generate_tests", "generate_single_test", "generate_pom" task types
+- ✅ Jinja2 environment avec templates Rest-Assured et pom.xml
+- ✅ Template variable mapping (context + oracle → Java)
+- ✅ Injection oracles as assertions (status, headers, schema, JSONPath, business rules)
+- ✅ Support authentification (Bearer, Basic, API Key)
+- ✅ Java code formatting (remove excessive blank lines)
+- ✅ Event publishing: "tests_generated"
+- ✅ Metrics: tests_generated, lines_of_code, assertions_count, pom_generated
+- ✅ Class/method name generation (PascalCase/camelCase)
+- ✅ URL splitting (base_url + path)
+- ✅ Path parameters handling
+- ✅ Response schema validation (object/array types, property types)
+- ✅ JSONPath assertions avec constraints (min/max, format validation)
+- ✅ Business rules as comments in test code
+- ✅ Setup/teardown code injection (optional)
+- ✅ Custom assertions injection (optional)
 
 ### 4.5 Agent Runner (Semaine 7)
 - [ ] Implémenter `runner.py` (hérite de BaseAgent)
@@ -383,7 +401,7 @@
 3. ✅ BaseAgent Infrastructure (Phase 4.1)
 4. ✅ Agent Inductor (Phase 4.2)
 5. ✅ Agent Oracle (Phase 4.3)
-6. 🔄 Agent Contractor (Phase 4.4)
+6. ✅ Agent Contractor (Phase 4.4)
 7. 🔄 Agent Runner (Phase 4.5)
 8. 🔄 Integration & E2E tests (Phase 4.6)
 
@@ -407,7 +425,7 @@
 - **Semaines 4-8** : 🔄 Phase 4 (Multi-Agent System)
   - Semaine 4 : ✅ BaseAgent (4.1) + ✅ Inductor (4.2)
   - Semaine 5 : ✅ Oracle (4.3)
-  - Semaine 6 : 🔄 Contractor (4.4)
+  - Semaine 6 : ✅ Contractor (4.4)
   - Semaine 7 : Runner (4.5)
   - Semaine 8 : Integration & E2E (4.6)
 - **Semaines 9-10** : Métriques + Validation (Phase 5)
