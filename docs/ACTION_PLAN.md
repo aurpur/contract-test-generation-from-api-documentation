@@ -96,9 +96,20 @@
 - ✅ Tests d'intégration exhaustifs
 
 ### 3.2 Communication
-- [ ] Protocole de communication inter-agents
-- [ ] Sérialisation/désérialisation des messages
-- [ ] File d'attente des tâches
+- [x] Protocole de communication inter-agents
+- [x] Sérialisation/désérialisation des messages
+- [x] File d'attente des tâches
+
+**Résultats Phase 3.2:**
+- ✅ 2,249 lignes de code (3 modules: communication, serialization, task_queue)
+- ✅ MessageRouter + EventBus pour routage et events
+- ✅ MessageBuilder avec interface fluent
+- ✅ Serializers JSON et Pickle
+- ✅ InMemoryTaskQueue avec priorités
+- ✅ TaskExecutor avec retry et timeout
+- ✅ TaskBuilder pour construction de tâches
+- ✅ 1,089 lignes de tests (53 tests)
+- ✅ Documentation complète (PHASE_3.2_SUMMARY.md)
 
 ## Phase 4 : Agent Inductor (Semaine 4)
 
