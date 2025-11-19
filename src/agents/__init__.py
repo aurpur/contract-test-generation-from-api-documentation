@@ -14,6 +14,7 @@ Author: Aurel IKAMA HONEY
 from .base_agent import BaseAgent, AgentConfig, AgentState
 from .factory import AgentFactory, AgentOrchestrator, create_agent_system
 from .inductor import InductorAgent
+from .oracle import OracleAgent
 
 __all__ = [
     "BaseAgent",
@@ -23,4 +24,5 @@ __all__ = [
     "AgentOrchestrator",
     "create_agent_system",
     "InductorAgent",
+    "OracleAgent",
 ]
