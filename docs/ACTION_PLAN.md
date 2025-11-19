@@ -239,23 +239,36 @@
 - ✅ Setup/teardown code injection (optional)
 - ✅ Custom assertions injection (optional)
 
-### 4.5 Agent Runner (Semaine 7)
-- [ ] Implémenter `runner.py` (hérite de BaseAgent)
-- [ ] Implémenter `maven_runner.py`
-- [ ] Parser les résultats JUnit
-- [ ] Collecte des métriques
-- [ ] Feedback loop pour regeneration
-- [ ] Gestion des timeouts et erreurs
-- [ ] Tests unitaires
-- [ ] Documentation
+### 4.5 Agent Runner (Semaine 7) ✅
+- [x] Implémenter `runner.py` (hérite de BaseAgent)
+- [x] Implémenter `maven_runner.py`
+- [x] Parser les résultats JUnit
+- [x] Collecte des métriques
+- [x] Feedback loop pour regeneration
+- [x] Gestion des timeouts et erreurs
+- [x] Tests unitaires (24 tests)
+- [x] Documentation
 
-**Tâches détaillées:**
-- [ ] process_task() pour "execute_tests" task type
-- [ ] Maven execution wrapper
-- [ ] JUnit XML parsing
-- [ ] Failure analysis
-- [ ] Event publishing: "tests_executed"
-- [ ] Metrics: tests_run, passed, failed, execution_time
+**Résultats Phase 4.5:**
+- ✅ `src/agents/runner.py` (843 lignes) - RunnerAgent + MavenRunner class
+- ✅ `tests/test_agents/test_runner.py` (731 lignes) - Unit tests
+- ✅ 1,574 lignes total (843 production + 731 tests)
+- ✅ Commit fd35fe5 créé et pushé
+
+**Fonctionnalités:**
+- ✅ process_task() pour "execute_tests", "execute_single_test", "analyze_failures" task types
+- ✅ MavenRunner wrapper class (Maven command execution, output parsing)
+- ✅ JUnit XML parsing (surefire-reports, TEST-*.xml files)
+- ✅ Test file writing to disk (src/test/java/generated)
+- ✅ Failure analysis (categorization, assertion parsing, suggestions)
+- ✅ Feedback loop mechanism (automatic regeneration for failed tests)
+- ✅ Retry logic with max retries (default 2)
+- ✅ Timeout handling (default 300s)
+- ✅ Event publishing: "tests_executed"
+- ✅ Metrics: tests_run, tests_passed, tests_failed, execution_time_ms, retries
+- ✅ Failure categories: assertion_failure, timeout, network_error, null_pointer, compilation_error, runtime_error
+- ✅ Message to Contractor for test regeneration
+- ✅ Maven verification on initialization
 
 ### 4.6 Integration & End-to-End Tests (Semaine 8)
 - [ ] Workflow complet: Inductor→Oracle→Contractor→Runner
@@ -402,7 +415,7 @@
 4. ✅ Agent Inductor (Phase 4.2)
 5. ✅ Agent Oracle (Phase 4.3)
 6. ✅ Agent Contractor (Phase 4.4)
-7. 🔄 Agent Runner (Phase 4.5)
+7. ✅ Agent Runner (Phase 4.5)
 8. 🔄 Integration & E2E tests (Phase 4.6)
 
 ### Important
@@ -426,7 +439,7 @@
   - Semaine 4 : ✅ BaseAgent (4.1) + ✅ Inductor (4.2)
   - Semaine 5 : ✅ Oracle (4.3)
   - Semaine 6 : ✅ Contractor (4.4)
-  - Semaine 7 : Runner (4.5)
+  - Semaine 7 : ✅ Runner (4.5)
   - Semaine 8 : Integration & E2E (4.6)
 - **Semaines 9-10** : Métriques + Validation (Phase 5)
 - **Semaines 11-12** : Expérimentations (Phase 6)
