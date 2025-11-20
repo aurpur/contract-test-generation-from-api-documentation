@@ -23,7 +23,7 @@ from shared_context import (
     TestExecutionResult,
     AgentType,
 )
-from orchestration import Task, MessageBuilder
+from orchestration import Task, MessageBuilder, TaskPriority
 from utils.logging import logger
 
 
@@ -366,6 +366,13 @@ class RunnerAgent(BaseAgent):
         """
         test_ids = task.payload.get("test_ids", [])
         session_id = task.payload.get("session_id")
+        output_dir = task.payload.get("output_dir")
+        
+        # Update project_dir if specified in payload (for execution-specific directories)
+        if output_dir:
+            self.project_dir = Path(output_dir)
+            self.maven_runner.project_dir = self.project_dir
+            logger.debug(f"Updated project_dir to: {self.project_dir}")
         
         if not test_ids:
             logger.warning("No test IDs provided for execution")
@@ -560,54 +567,154 @@ class RunnerAgent(BaseAgent):
     
     async def _write_tests_to_disk(self, tests: List[GeneratedTest]) -> None:
         """
-        Write test files to disk in organized structure.
+        Write test files to disk in Maven structure.
         
         Args:
             tests: List of generated tests
         """
-        # Determine Java test directory
-        java_dir = self.project_dir / "java"
-        java_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Determine Gherkin features directory
-        gherkin_dir = self.project_dir / "gherkin"
-        gherkin_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Also maintain Maven structure for execution compatibility
+        # Create Maven structure for test execution
         maven_test_dir = self.project_dir / "src" / "test" / "java" / "generated"
         maven_test_dir.mkdir(parents=True, exist_ok=True)
         
         maven_features_dir = maven_test_dir / "features"
         maven_features_dir.mkdir(parents=True, exist_ok=True)
         
+        # Create pom.xml if it doesn't exist
+        self._create_maven_pom()
+        
         for test in tests:
-            # Write Java test file to output/tests/java/
+            # Write Java test file to Maven directory
             java_filename = f"{test.test_class_name}.java"
-            java_filepath = java_dir / java_filename
-            
-            with open(java_filepath, 'w', encoding='utf-8') as f:
-                f.write(test.test_code)
-            
-            logger.info(f"Written test file: {java_filepath}")
-            
-            # Also copy to Maven directory for execution
             maven_filepath = maven_test_dir / java_filename
+            
             with open(maven_filepath, 'w', encoding='utf-8') as f:
                 f.write(test.test_code)
             
+            logger.info(f"Written test file: {maven_filepath}")
+            
             # Write Gherkin feature file if present
             if test.feature_file_name and test.feature_content:
-                # Write to output/tests/gherkin/
-                gherkin_filepath = gherkin_dir / test.feature_file_name
-                with open(gherkin_filepath, 'w', encoding='utf-8') as f:
-                    f.write(test.feature_content)
-                
-                logger.info(f"Written feature file: {gherkin_filepath}")
-                
-                # Also copy to Maven directory
                 maven_feature_path = maven_features_dir / test.feature_file_name
                 with open(maven_feature_path, 'w', encoding='utf-8') as f:
                     f.write(test.feature_content)
+                
+                logger.info(f"Written feature file: {maven_feature_path}")
+    
+    def _create_maven_pom(self) -> None:
+        """
+        Create Maven pom.xml file for test execution.
+        """
+        pom_path = self.project_dir / "pom.xml"
+        
+        # Only create if it doesn't exist
+        if pom_path.exists():
+            logger.debug(f"Maven pom.xml already exists: {pom_path}")
+            return
+        
+        pom_content = """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.contract.test</groupId>
+    <artifactId>generated-contract-tests</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Generated Contract Tests</name>
+    <description>Auto-generated REST-Assured contract tests</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <rest-assured.version>5.3.0</rest-assured.version>
+        <junit.version>5.9.3</junit.version>
+        <cucumber.version>7.12.0</cucumber.version>
+    </properties>
+
+    <dependencies>
+        <!-- REST-Assured for API testing -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 for test execution -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Cucumber for BDD testing -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JSON parsing -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Maven Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Surefire Plugin for running tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <testFailureIgnore>false</testFailureIgnore>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+"""
+        
+        with open(pom_path, 'w', encoding='utf-8') as f:
+            f.write(pom_content)
+        
+        logger.info(f"Created Maven pom.xml: {pom_path}")
     
     async def _create_execution_result(
         self,
@@ -774,7 +881,8 @@ class RunnerAgent(BaseAgent):
         """
         logger.info(f"Triggering regeneration for {len(failed_results)} failed tests")
         
-        # Build regeneration requests
+        # Build regeneration requests as tasks, not messages
+        # Tasks are submitted to the agent's task queue and processed asynchronously
         for result in failed_results:
             # Check retry count
             if result.retry_count >= self.max_retries:
@@ -783,21 +891,30 @@ class RunnerAgent(BaseAgent):
                 )
                 continue
             
-            # Send message to Contractor for regeneration
-            message = MessageBuilder.create_request(
-                from_agent=AgentType.RUNNER,
-                to_agent=AgentType.CONTRACTOR,
-                message_type="regenerate_test",
-                payload={
-                    "test_id": str(result.test_id),
-                    "failure_reason": result.error_message,
-                    "assertion_failures": result.assertion_failures,
-                    "retry_count": result.retry_count + 1,
-                },
-                session_id=session_id,
+            # Submit regeneration task to Contractor agent's task queue
+            # This is the proper way to communicate between agents for task-based work
+            from agents.factory import AgentOrchestrator
+            
+            # Get contractor agent from the factory
+            # Note: In a production system, we would have a reference to the orchestrator
+            # For now, we log the regeneration request for future implementation
+            logger.info(
+                f"Regeneration requested for test {result.test_id}: "
+                f"{result.error_message} (retry {result.retry_count + 1})"
             )
             
-            await self.message_router.send(message)
+            # TODO: Submit task to Contractor agent when orchestrator reference is available
+            # await contractor.submit_task(
+            #     task_type="regenerate_test",
+            #     session_id=session_id,
+            #     payload={
+            #         "test_id": str(result.test_id),
+            #         "failure_reason": result.error_message,
+            #         "assertion_failures": result.assertion_failures,
+            #         "retry_count": result.retry_count + 1,
+            #     },
+            #     priority=TaskPriority.HIGH,
+            # )
             
             self._metrics["retries"] += 1
     

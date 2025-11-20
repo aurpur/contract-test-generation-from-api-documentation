@@ -44,6 +44,7 @@ async def run_workflow(
     from agents.oracle import OracleAgent
     from agents.contractor import ContractorAgent
     from agents.runner import RunnerAgent
+    from datetime import datetime
     
     logger.info("=" * 80)
     logger.info("Starting Contract Test Generation Workflow")
@@ -64,9 +65,13 @@ async def run_workflow(
         
         config = get_config()
         
-        # Initialize report generator
+        # Initialize report generator with execution_id
         from utils.report_generator import ReportGenerator
-        report_gen = ReportGenerator(output_dir=Path("output/reports"))
+        execution_id = datetime.now().strftime("exec_%Y%m%d_%H%M%S")
+        report_gen = ReportGenerator(
+            output_dir=Path("output"),
+            execution_id=execution_id
+        )
         
         # Initialize storage backend (in-memory for now)
         from shared_context.storage import InMemoryStorage
@@ -113,15 +118,34 @@ async def run_workflow(
         
         collection_name = Path(collection_path).stem
         
-        # Extract LLM model names from config (default to mistral if not specified)
+        # ==============================================================================
+        # LLM Model Configuration
+        # ==============================================================================
+        # Extract LLM model names from agent configuration for session tracking.
+        # This mapping is used to:
+        # 1. Record which LLM model each agent uses in the workflow session
+        # 2. Display model information in reports for transparency and debugging
+        # 3. Enable model-specific optimizations or fallbacks if needed
+        #
+        # For each agent (inductor, oracle, contractor, runner):
+        # - Try to read the model from config.agents[agent_name].consensus.model
+        # - If not found or consensus config missing, fallback to 'mistral'
+        # - Store in llm_models dict with AgentType enum as key
+        # ==============================================================================
         llm_models = {}
         for agent_name in ["inductor", "oracle", "contractor", "runner"]:
             agent_type = AgentType[agent_name.upper()]
-            # Try to get model from agent config, fallback to default
+            
+            # Retrieve agent-specific configuration
             agent_config_dict = config.agents.get(agent_name, None)
+            
+            # Extract model name from consensus config, with fallback
             if agent_config_dict and hasattr(agent_config_dict, 'consensus'):
-                llm_models[agent_type] = agent_config_dict.consensus.get('model', 'mistral') if agent_config_dict.consensus else 'mistral'
+                # Get model from consensus config if available
+                consensus_config = agent_config_dict.consensus
+                llm_models[agent_type] = consensus_config.get('model', 'mistral') if consensus_config else 'mistral'
             else:
+                # Fallback to default model if no config found
                 llm_models[agent_type] = 'mistral'
         
         session = await context_manager.create_session(
@@ -193,7 +217,7 @@ async def run_workflow(
             payload={
                 "oracle_ids": oracle_ids,
                 "session_id": str(session_id),
-                "output_dir": output_dir or "generated_tests",
+                "output_dir": str(report_gen.execution_dir / "tests"),
             },
             priority=TaskPriority.NORMAL,
         )
@@ -216,7 +240,7 @@ async def run_workflow(
             payload={
                 "test_ids": test_ids,
                 "session_id": str(session_id),
-                "output_dir": output_dir or "generated_tests",
+                "output_dir": str(report_gen.execution_dir / "tests"),
             },
             priority=TaskPriority.HIGH,
         )
@@ -257,6 +281,14 @@ async def run_workflow(
         # Calculate workflow duration
         workflow_duration = time.time() - start_time
         
+        # Get event bus statistics
+        event_stats = event_bus.get_event_statistics()
+        logger.info(f"\nEvent Bus Statistics:")
+        logger.info(f"  Total events published: {event_stats['total_events']}")
+        logger.info(f"  Unique event types: {event_stats['unique_event_types']}")
+        for event_type, count in event_stats['event_counts'].items():
+            logger.info(f"    - {event_type}: {count}")
+        
         # 9. Generate reports
         logger.info("\n" + "=" * 80)
         logger.info("Generating Reports")
@@ -267,6 +299,9 @@ async def run_workflow(
             session_id=session_id,
             metrics=metrics,
             duration=workflow_duration,
+            oracles=oracles,
+            event_stats=event_stats,
+            llm_models=llm_models,
         )
         logger.success(f"✓ Agent execution report: {agent_report}")
         
@@ -294,6 +329,7 @@ async def run_workflow(
             tests=tests,
             results=results,
             duration=workflow_duration,
+            event_stats=event_stats,
         )
         logger.success(f"✓ Execution trace: {trace_file}")
         
@@ -329,12 +365,10 @@ async def run_workflow(
 
 def main():
     """Main entry point."""
-    from utils.logging import logger, setup_logging
+    from utils.logging import logger
     import argparse
     
-    # Setup logging
-    setup_logging()
-    
+    # Logging is already initialized in utils.logging module
     logger.info("=" * 80)
     logger.info("Contract Test Generation from API Documentation")
     logger.info("Multi-Agent System v0.1.0")

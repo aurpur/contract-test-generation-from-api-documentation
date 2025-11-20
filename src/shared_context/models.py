@@ -91,6 +91,7 @@ class Oracle(BaseModel):
     """Validation rule/oracle for an endpoint."""
     
     id: UUID = Field(default_factory=uuid4)
+    name: str = Field(..., description="Oracle name (e.g., 'Get Users Oracle')")
     endpoint_id: UUID = Field(..., description="Associated endpoint ID")
     
     # Validation rules

@@ -599,8 +599,12 @@ Generate the oracle now:
         rationales = [p[0].get("rationale", "") for p in oracle_proposals if p[0].get("rationale")]
         combined_rationale = " | ".join(rationales) if rationales else None
         
+        # Generate oracle name from endpoint name
+        oracle_name = f"{context.name} Oracle" if context.name else f"Endpoint {context.id} Oracle"
+        
         # Build consensus oracle
         oracle = Oracle(
+            name=oracle_name,
             endpoint_id=context.id,
             status_code=consensus_status_code or context.expected_status or 200,
             status_code_range=None,  # Could be derived from proposals
@@ -761,7 +765,11 @@ Generate the oracle now:
         if context.expected_headers:
             required_headers = list(context.expected_headers.keys())
         
+        # Generate oracle name from endpoint name
+        oracle_name = f"{context.name} Oracle (Fallback)" if context.name else f"Endpoint {context.id} Oracle (Fallback)"
+        
         oracle = Oracle(
+            name=oracle_name,
             endpoint_id=context.id,
             status_code=status_code,
             required_headers=required_headers,

@@ -126,6 +126,9 @@ class ContractorAgent(BaseAgent):
             return await self._generate_tests_from_oracles(task)
         elif task_type == "generate_single_test":
             return await self._generate_single_test(task)
+        elif task_type == "regenerate_test":
+            # Handle test regeneration request from Runner
+            return await self._regenerate_failed_test(task)
         elif task_type == "generate_pom":
             return await self._generate_pom_xml(task)
         else:
@@ -237,6 +240,36 @@ class ContractorAgent(BaseAgent):
             "total_lines": total_lines,
             "total_assertions": total_assertions,
             "failed_oracles": failed_oracles,
+        }
+    
+    async def _regenerate_failed_test(self, task: Task) -> Dict[str, Any]:
+        """
+        Regenerate a failed test with fixes.
+        
+        Args:
+            task: Task with test_id, failure_reason, and retry_count in payload
+            
+        Returns:
+            Result with regenerated test information
+        """
+        test_id = task.payload.get("test_id")
+        failure_reason = task.payload.get("failure_reason", "Unknown error")
+        retry_count = task.payload.get("retry_count", 1)
+        
+        logger.info(f"Regenerating test {test_id} (retry {retry_count}): {failure_reason}")
+        
+        # For now, log the regeneration request
+        # In future, this would:
+        # 1. Retrieve the original oracle
+        # 2. Analyze the failure reason
+        # 3. Generate improved test code
+        # 4. Update the test in ContextManager
+        
+        return {
+            "status": "regeneration_requested",
+            "test_id": test_id,
+            "retry_count": retry_count,
+            "message": f"Test regeneration logged (not yet implemented)"
         }
     
     async def _generate_single_test(self, task: Task) -> Dict[str, Any]:

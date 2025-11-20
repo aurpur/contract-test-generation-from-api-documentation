@@ -137,6 +137,94 @@ Ce projet vise à répondre aux questions de recherche suivantes :
 - Support du format de documentation Bruno
 - Système de validation et métriques pour l'évaluation empirique
 - **Mode développement économique** : Désactivation des modèles cloud pour un coût de 0€
+- **Organisation par exécution** : Chaque exécution crée un répertoire dédié avec tous ses outputs
+- **Métriques de confidence** : Évaluation de la qualité des oracles générés
+
+## 🚀 Démarrage Rapide
+
+### Installation
+
+```bash
+# Cloner le projet
+git clone https://github.com/aurpur/contract-test-generation-from-api-documentation.git
+cd contract-test-generation-from-api-documentation
+
+# Créer l'environnement virtuel
+python -m venv .venv
+source .venv/bin/activate  # Sur Windows: .venv\Scripts\activate
+
+# Installer les dépendances
+pip install -r requirements.txt
+
+# Installer Ollama (requis pour le mode développement)
+# Télécharger depuis https://ollama.ai puis:
+ollama pull mistral
+ollama pull llama3.1
+```
+
+### Exécution
+
+```bash
+# Mode développement (gratuit, Ollama uniquement)
+export ENABLE_CLOUD_MODELS=false
+python src/main.py bruno_collections/example_api/Sample_API_Collection.json
+
+# Les outputs seront dans: output/exec_YYYYMMDD_HHMMSS/
+```
+
+### Structure des Outputs
+
+Chaque exécution crée un répertoire dédié :
+
+```
+output/
+└── exec_20251120_013959/          # Timestamp de l'exécution
+    ├── tests/                      # Tests générés (Java + Gherkin)
+    ├── reports/                    # Rapports HTML interactifs
+    ├── graphs/                     # Graphiques PNG
+    ├── logs/                       # Logs d'exécution
+    ├── traces/                     # Traces JSON complètes
+    ├── oracles/                    # Liste des oracles
+    └── contexts/                   # Contextes extraits
+```
+
+### Consulter les Résultats
+
+```bash
+# Dernière exécution
+LATEST=$(ls -td output/exec_* | head -1)
+
+# Ouvrir le rapport HTML avec métriques de confidence
+open $LATEST/reports/agent_execution_report.html
+
+# Voir les tests générés
+ls $LATEST/tests/java/
+ls $LATEST/tests/gherkin/
+
+# Analyser les oracles et leur confidence
+cat $LATEST/oracles/oracle_list.txt
+jq '.oracles[] | {name, confidence}' $LATEST/traces/execution_trace.json
+```
+
+## 📊 Métriques de Confidence
+
+Les oracles générés incluent une **métrique de confidence** (0.0 à 1.0) qui évalue leur qualité :
+
+| Score | Niveau | Signification |
+|-------|--------|---------------|
+| 🟢 ≥ 0.80 | Élevé | Oracle fiable, validation solide |
+| 🟡 0.60-0.79 | Moyen | Oracle acceptable, à vérifier |
+| 🔴 < 0.60 | Faible | Oracle incomplet ou fallback |
+
+**Facteurs d'influence** :
+- ✅ Qualité des prompts LLM et réponses générées
+- ✅ Présence d'exemples dans la documentation
+- ✅ Complétude des spécifications
+- ❌ Timeouts LLM (déclenche mode fallback à 0.50)
+
+**Visualisation** : Les rapports HTML affichent la confidence par couleur dans les tableaux récapitulatifs.
+
+📖 **Documentation complète** : [`docs/CONFIDENCE_METRICS.md`](docs/CONFIDENCE_METRICS.md)
 
 ## Configuration
 
@@ -192,4 +280,55 @@ Lorsque `ENABLE_CLOUD_MODELS=false`, le système :
 - Google : [makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
 
 Voir [docs/OLLAMA_SETUP.md](docs/OLLAMA_SETUP.md) pour plus de détails sur la configuration Ollama.
+
+### Changer de Modèle LLM
+
+Pour utiliser un modèle différent de Mistral, modifiez le fichier de configuration des agents :
+
+**`config/agents_config.yaml`** :
+
+```yaml
+agents:
+  inductor:
+    model: "ollama/llama3.1:latest"  # Au lieu de mistral:latest
+    timeout: 30
+    
+  oracle:
+    models:
+      - provider: "ollama"
+        name: "llama3.1:latest"      # Au lieu de mistral:latest
+        weight: 1.0
+        
+  contractor:
+    model: "ollama/codellama:latest" # Pour génération de code
+    timeout: 45
+```
+
+**Modèles Ollama disponibles** :
+- `mistral:latest` - Modèle par défaut, bon équilibre performance/vitesse
+- `llama3.1:latest` - Meilleure compréhension contextuelle
+- `codellama:latest` - Optimisé pour génération de code
+- `deepseek-coder:latest` - Excellent pour code Java/Python
+- `phi3:latest` - Léger et rapide
+
+**Installation d'un nouveau modèle** :
+```bash
+ollama pull llama3.1
+ollama pull codellama
+ollama list  # Vérifier les modèles installés
+```
+
+**Modèles cloud** (si `ENABLE_CLOUD_MODELS=true`) :
+```yaml
+oracle:
+  models:
+    - provider: "openai"
+      name: "gpt-4-turbo-preview"
+      weight: 1.0
+    - provider: "anthropic"  
+      name: "claude-3-sonnet-20240229"
+      weight: 0.8
+```
+
+📖 **Documentation complète** : [`config/llm_config.yaml`](config/llm_config.yaml) contient tous les paramètres LLM disponibles.
 

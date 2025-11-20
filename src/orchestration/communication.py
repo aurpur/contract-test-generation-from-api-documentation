@@ -242,6 +242,21 @@ class MessageRouter:
         logger.error(error_msg)
         raise ValueError(error_msg)
     
+    async def send(self, message: AgentMessage) -> None:
+        """
+        Send a message by routing it to the appropriate handler.
+        
+        This is an alias for route_message that doesn't return a value,
+        used when the response is not needed.
+        
+        Args:
+            message: Message to send
+        """
+        try:
+            await self.route_message(message)
+        except Exception as e:
+            logger.error(f"Failed to send message {message.id}: {e}")
+    
     def has_handler(self, message_type: str) -> bool:
         """
         Check if a handler is registered for a message type.
@@ -266,6 +281,8 @@ class EventBus:
     def __init__(self):
         """Initialize event bus."""
         self.subscribers: Dict[str, List[Callable]] = {}
+        self.event_counts: Dict[str, int] = {}  # Track event publish counts
+        self.total_events: int = 0  # Total events published
         logger.debug("EventBus initialized")
     
     def subscribe(
@@ -319,6 +336,10 @@ class EventBus:
             event_type: Type of event
             event_data: Event data
         """
+        # Track event counts
+        self.event_counts[event_type] = self.event_counts.get(event_type, 0) + 1
+        self.total_events += 1
+        
         if event_type not in self.subscribers:
             logger.debug(f"No subscribers for event type: {event_type}")
             return
@@ -353,6 +374,19 @@ class EventBus:
             Number of subscribers
         """
         return len(self.subscribers.get(event_type, []))
+    
+    def get_event_statistics(self) -> Dict[str, Any]:
+        """
+        Get statistics about published events.
+        
+        Returns:
+            Dictionary with event statistics
+        """
+        return {
+            "total_events": self.total_events,
+            "event_counts": dict(self.event_counts),
+            "unique_event_types": len(self.event_counts),
+        }
 
 
 class MessageBuilder:
@@ -451,6 +485,69 @@ class MessageBuilder:
         self._priority = MessagePriority.NORMAL
         self._parent_message_id = None
         return self
+    
+    @classmethod
+    def create_request(
+        cls,
+        from_agent: AgentType,
+        to_agent: AgentType,
+        message_type: str,
+        payload: Dict[str, Any],
+        session_id: UUID,
+        priority: MessagePriority = MessagePriority.NORMAL,
+    ) -> AgentMessage:
+        """
+        Create a request message (factory method).
+        
+        Args:
+            from_agent: Sender agent
+            to_agent: Receiver agent
+            message_type: Type of message
+            payload: Message payload
+            session_id: Session ID
+            priority: Message priority
+            
+        Returns:
+            Constructed agent message
+        """
+        return cls() \
+            .from_agent(from_agent) \
+            .to_agent(to_agent) \
+            .with_type(message_type) \
+            .with_payload(payload) \
+            .for_session(session_id) \
+            .with_priority(priority) \
+            .build()
+    
+    @classmethod
+    def create_response(
+        cls,
+        original_message: AgentMessage,
+        response_data: Dict[str, Any],
+        message_type: Optional[str] = None,
+    ) -> AgentMessage:
+        """
+        Create a response message to an original message (factory method).
+        
+        Args:
+            original_message: The message being responded to
+            response_data: Response payload
+            message_type: Optional message type (defaults to original_type + '_response')
+            
+        Returns:
+            Constructed response message
+        """
+        response_type = message_type or f"{original_message.message_type}_response"
+        
+        return cls() \
+            .from_agent(original_message.to_agent) \
+            .to_agent(original_message.from_agent) \
+            .with_type(response_type) \
+            .with_payload(response_data) \
+            .for_session(original_message.session_id) \
+            .with_priority(original_message.priority) \
+            .in_reply_to(original_message.id) \
+            .build()
 
 
 # Common message types

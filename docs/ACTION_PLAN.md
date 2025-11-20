@@ -357,6 +357,10 @@
 
 ## Phase 5 : Validation & Métriques (Semaine 9-10)
 
+- [ ] Ajouter un agent de validation des oracles (ValidationAgent)
+- [ ] Ajouter un agent de validation du code généré (CodeQualityAgent), en plus de la qualité du code, mesure aussi l'écart entre oracles et code généré
+- [ ] Ajouter une fonction que l'agent CodeQualityAgent utilise pour inspecter les smells et antipatterns dans le code Java généré.
+
 ### 5.1 Implémentation Métriques
 - [ ] `oracle_metrics.py` (RQ1 - Précision oracles)
 - [ ] `inconsistency_detector.py` (RQ2 - Cohérence oracles/code)

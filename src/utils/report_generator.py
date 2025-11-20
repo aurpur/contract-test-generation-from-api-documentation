@@ -2,6 +2,7 @@
 Report generation utilities for contract test generation workflow.
 """
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -22,29 +23,47 @@ from shared_context.models import (
 class ReportGenerator:
     """Generate various reports for the workflow execution."""
     
-    def __init__(self, output_dir: Path = Path("output/reports")):
+    def __init__(self, output_dir: Path = Path("output"), execution_id: Optional[str] = None):
         """
         Initialize report generator.
         
         Args:
-            output_dir: Directory to save reports
+            output_dir: Base directory for all outputs (e.g., "output")
+            execution_id: Unique execution ID (timestamp-based)
         """
-        self.output_dir = output_dir
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        # Generate execution ID if not provided
+        if execution_id is None:
+            execution_id = datetime.now().strftime("exec_%Y%m%d_%H%M%S")
         
-        # Create subdirectories
-        self.logs_dir = self.output_dir / "logs"
-        self.graphs_dir = self.output_dir / "graphs"
-        self.traces_dir = self.output_dir / "traces"
+        self.execution_id = execution_id
         
-        for dir_path in [self.logs_dir, self.graphs_dir, self.traces_dir]:
+        # Create execution-specific directory under output_dir
+        self.execution_dir = output_dir / execution_id
+        self.execution_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create subdirectories for this execution
+        self.reports_dir = self.execution_dir / "reports"
+        self.tests_dir = self.execution_dir / "tests"
+        self.logs_dir = self.execution_dir / "logs"
+        self.graphs_dir = self.execution_dir / "graphs"
+        self.traces_dir = self.execution_dir / "traces"
+        self.oracles_dir = self.execution_dir / "oracles"
+        self.contexts_dir = self.execution_dir / "contexts"
+        
+        for dir_path in [self.reports_dir, self.tests_dir, self.logs_dir, 
+                         self.graphs_dir, self.traces_dir, self.oracles_dir, self.contexts_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
+        
+        # Note: test subdirectories (pom.xml and src/) are created by Runner agent
     
     def generate_agent_execution_report(
         self,
         session_id: UUID,
         metrics: Dict[str, Dict[str, int]],
         duration: float,
+        oracles: List = None,
+        event_stats: Dict[str, Any] = None,
+        llm_models: Dict[str, str] = None,
     ) -> Path:
         """
         Generate agent execution report with graphs.
@@ -53,17 +72,16 @@ class ReportGenerator:
             session_id: Workflow session ID
             metrics: Agent metrics (tasks processed, succeeded, failed)
             duration: Total workflow duration in seconds
+            oracles: List of generated oracles (optional, for confidence)
+            event_stats: Event bus statistics (optional, for agent interactions)
             
         Returns:
             Path to generated report
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        html_dir = self.output_dir / "html"
-        html_dir.mkdir(parents=True, exist_ok=True)
-        report_path = html_dir / f"agent_execution_report_{timestamp}.html"
+        report_path = self.reports_dir / "agent_execution_report.html"
         
         # Generate task distribution graph
-        graph_path = self._generate_agent_metrics_graph(metrics, timestamp)
+        graph_path = self._generate_agent_metrics_graph(metrics, self.execution_id)
         
         # Create HTML report
         html_content = f"""
@@ -138,6 +156,10 @@ class ReportGenerator:
             color: #f44336;
             font-weight: bold;
         }}
+        .warning {{
+            color: #ff9800;
+            font-weight: bold;
+        }}
     </style>
 </head>
 <body>
@@ -165,6 +187,21 @@ class ReportGenerator:
             <div class="metric-label">Success Rate</div>
             <div class="metric-value">{self._calculate_success_rate(metrics):.1f}%</div>
         </div>
+    </div>
+    
+    <div class="section">
+        <h2>🤖 LLM Models</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Agent</th>
+                    <th>LLM Model</th>
+                </tr>
+            </thead>
+            <tbody>
+{self._generate_llm_models_rows(llm_models)}
+            </tbody>
+        </table>
     </div>
     
     <div class="section">
@@ -205,8 +242,129 @@ class ReportGenerator:
     
     <div class="section">
         <h2>📊 Visual Analytics</h2>
-        <img src="{graph_path.name}" alt="Agent Metrics Graph">
+        <img src="../graphs/{graph_path.name}" alt="Agent Metrics Graph">
     </div>
+"""
+        
+        # Add oracle confidence section if oracles provided
+        if oracles:
+            confidences = [getattr(oracle, 'confidence_score', 0.5) for oracle in oracles]
+            avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+            min_confidence = min(confidences) if confidences else 0
+            max_confidence = max(confidences) if confidences else 0
+            
+            html_content += f"""
+    <div class="section">
+        <h2>🎯 Oracle Confidence Metrics</h2>
+        <div class="metric">
+            <div class="metric-label">Average Confidence</div>
+            <div class="metric-value">{avg_confidence:.2%}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Min Confidence</div>
+            <div class="metric-value">{min_confidence:.2%}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Max Confidence</div>
+            <div class="metric-value">{max_confidence:.2%}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Total Oracles</div>
+            <div class="metric-value">{len(oracles)}</div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Oracle Name</th>
+                    <th>Confidence</th>
+                    <th>Quality</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+            
+            for oracle in oracles:
+                confidence = getattr(oracle, 'confidence_score', 0.5)
+                oracle_name = getattr(oracle, 'name', 'Unknown')
+                
+                # Determine quality level
+                if confidence >= 0.8:
+                    quality = "🟢 High"
+                    quality_class = "success"
+                elif confidence >= 0.6:
+                    quality = "🟡 Medium"
+                    quality_class = "warning"
+                else:
+                    quality = "🔴 Low"
+                    quality_class = "failed"
+                
+                html_content += f"""
+                <tr>
+                    <td><strong>{oracle_name}</strong></td>
+                    <td>{confidence:.2%}</td>
+                    <td class="{quality_class}">{quality}</td>
+                </tr>
+"""
+            
+            html_content += """
+            </tbody>
+        </table>
+    </div>
+"""
+        
+        # Add agent interactions/events section if event_stats provided
+        if event_stats:
+            total_events = event_stats.get('total_events', 0)
+            unique_types = event_stats.get('unique_event_types', 0)
+            event_counts = event_stats.get('event_counts', {})
+            
+            html_content += f"""
+    <div class="section">
+        <h2>🔄 Agent Interactions & Workflow Iterations</h2>
+        <div class="metric">
+            <div class="metric-label">Total Events Published</div>
+            <div class="metric-value">{total_events}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Unique Event Types</div>
+            <div class="metric-value">{unique_types}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Avg Events per Type</div>
+            <div class="metric-value">{total_events / unique_types if unique_types > 0 else 0:.1f}</div>
+        </div>
+        
+        <h3>Event Distribution</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Event Type</th>
+                    <th>Count</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+            
+            for event_type, count in sorted(event_counts.items(), key=lambda x: x[1], reverse=True):
+                percentage = (count / total_events * 100) if total_events > 0 else 0
+                html_content += f"""
+                <tr>
+                    <td><strong>{event_type}</strong></td>
+                    <td>{count}</td>
+                    <td>{percentage:.1f}%</td>
+                </tr>
+"""
+            
+            html_content += """
+            </tbody>
+        </table>
+        <p><em>Note: Chaque événement représente une interaction ou un aller-retour entre agents dans le workflow.</em></p>
+    </div>
+"""
+        
+        html_content += """
 </body>
 </html>
 """
@@ -234,13 +392,10 @@ class ReportGenerator:
         Returns:
             Path to generated report
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        html_dir = self.output_dir / "html"
-        html_dir.mkdir(parents=True, exist_ok=True)
-        report_path = html_dir / f"test_execution_report_{timestamp}.html"
+        report_path = self.reports_dir / "test_execution_report.html"
         
         # Generate test results graph
-        graph_path = self._generate_test_results_graph(results, timestamp)
+        graph_path = self._generate_test_results_graph(results, self.execution_id)
         
         # Calculate metrics
         total_tests = len(results)
@@ -248,6 +403,9 @@ class ReportGenerator:
         failed = total_tests - passed
         pass_rate = (passed / total_tests * 100) if total_tests > 0 else 0
         avg_time = sum(r.execution_time_ms for r in results) / total_tests if total_tests > 0 else 0
+        # Handle NaN values
+        if math.isnan(avg_time) or math.isinf(avg_time):
+            avg_time = 0
         
         # Create HTML report
         html_content = f"""
@@ -379,11 +537,16 @@ class ReportGenerator:
             status_class = "passed" if result.passed else "failed"
             assertions = test.assertion_count if test else 0
             
+            # Handle NaN values in execution time
+            exec_time = result.execution_time_ms
+            if math.isnan(exec_time) or math.isinf(exec_time):
+                exec_time = 0
+            
             html_content += f"""
                 <tr>
                     <td><strong>{test_name}</strong></td>
                     <td class="{status_class}">{status}</td>
-                    <td>{result.execution_time_ms:.0f}ms</td>
+                    <td>{exec_time:.0f}ms</td>
                     <td>{assertions}</td>
                 </tr>
 """
@@ -395,7 +558,7 @@ class ReportGenerator:
     
     <div class="section">
         <h2>📊 Visual Analytics</h2>
-        <img src="{graph_path.name}" alt="Test Results Graph">
+        <img src="../graphs/{graph_path.name}" alt="Test Results Graph">
     </div>
 </body>
 </html>
@@ -424,12 +587,7 @@ class ReportGenerator:
         Returns:
             Path to oracle list file
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Save to oracles directory
-        oracles_dir = self.output_dir.parent / "oracles"
-        oracles_dir.mkdir(parents=True, exist_ok=True)
-        list_path = oracles_dir / f"oracle_list_{timestamp}.txt"
+        list_path = self.oracles_dir / "oracle_list.txt"
         
         # Create endpoint map for names
         endpoint_map = {}
@@ -444,12 +602,12 @@ class ReportGenerator:
             f.write(f"Total Oracles: {len(oracles)}\n\n")
             
             for i, oracle in enumerate(oracles, 1):
-                endpoint_name = endpoint_map.get(oracle.endpoint_id, "Unknown")
-                f.write(f"{i}. {endpoint_name}\n")
+                oracle_name = getattr(oracle, 'name', None) or endpoint_map.get(oracle.endpoint_id, "Unknown")
+                f.write(f"{i}. {oracle_name}\n")
                 f.write(f"   - Oracle ID: {oracle.id}\n")
                 f.write(f"   - Endpoint ID: {oracle.endpoint_id}\n")
                 f.write(f"   - Expected Status: {oracle.status_code}\n")
-                f.write(f"   - Confidence: {getattr(oracle, 'confidence', 'N/A')}\n")
+                f.write(f"   - Confidence: {getattr(oracle, 'confidence_score', 'N/A')}\n")
                 f.write(f"   - Assertions: {len(getattr(oracle, 'assertions', []))}\n")
                 f.write("\n")
         
@@ -464,6 +622,7 @@ class ReportGenerator:
         tests: List[GeneratedTest],
         results: List[TestExecutionResult],
         duration: float,
+        event_stats: Dict[str, Any] = None,
     ) -> Path:
         """
         Generate detailed execution trace in JSON format.
@@ -475,12 +634,12 @@ class ReportGenerator:
             tests: Generated tests
             results: Execution results
             duration: Total duration in seconds
+            event_stats: Event bus statistics (optional)
             
         Returns:
             Path to trace file
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        trace_path = self.traces_dir / f"execution_trace_{timestamp}.json"
+        trace_path = self.traces_dir / "execution_trace.json"
         
         trace_data = {
             "session_id": str(session_id),
@@ -510,8 +669,9 @@ class ReportGenerator:
                     "oracles": [
                         {
                             "id": str(oracle.id),
+                            "name": getattr(oracle, 'name', f"Oracle {oracle.id}"),
                             "endpoint_id": str(oracle.endpoint_id),
-                            "confidence": getattr(oracle, 'confidence', 0.5),
+                            "confidence": getattr(oracle, 'confidence_score', 0.5),
                             "assertions": len(getattr(oracle, 'assertions', [])),
                         }
                         for oracle in oracles
@@ -558,6 +718,15 @@ class ReportGenerator:
             },
         }
         
+        # Add agent interactions section if event_stats provided
+        if event_stats:
+            trace_data["agent_interactions"] = {
+                "total_events": event_stats.get('total_events', 0),
+                "unique_event_types": event_stats.get('unique_event_types', 0),
+                "event_counts": event_stats.get('event_counts', {}),
+                "description": "Total number of events/messages exchanged between agents during workflow execution"
+            }
+        
         with open(trace_path, 'w', encoding='utf-8') as f:
             json.dump(trace_data, f, indent=2)
         
@@ -579,8 +748,7 @@ class ReportGenerator:
         Returns:
             Path to log file
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = self.logs_dir / f"workflow_log_{timestamp}.log"
+        log_path = self.logs_dir / "workflow_log.log"
         
         with open(log_path, 'w', encoding='utf-8') as f:
             f.write(f"Workflow Log - Session {session_id}\n")
@@ -670,6 +838,27 @@ class ReportGenerator:
         plt.close()
         
         return graph_path
+    
+    def _generate_llm_models_rows(self, llm_models: Dict[str, str] = None) -> str:
+        """
+        Generate HTML rows for LLM models table.
+        
+        Args:
+            llm_models: Dictionary mapping agent types to LLM model names
+            
+        Returns:
+            HTML string with table rows
+        """
+        if not llm_models:
+            return "                <tr><td colspan='2'>No LLM model information available</td></tr>"
+        
+        rows = []
+        for agent_type, model_name in llm_models.items():
+            # Extract agent name from AgentType enum or string
+            agent_name = str(agent_type).split('.')[-1] if '.' in str(agent_type) else str(agent_type)
+            rows.append(f"                <tr><td>{agent_name}</td><td>{model_name}</td></tr>")
+        
+        return "\n".join(rows)
     
     def _calculate_success_rate(self, metrics: Dict[str, Dict[str, int]]) -> float:
         """Calculate overall success rate from metrics."""
