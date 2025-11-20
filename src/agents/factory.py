@@ -117,15 +117,44 @@ class AgentFactory:
         if llm_config is None:
             llm_config = self._get_llm_config(agent_type)
         
+        # Build base parameters common to all agents
+        import inspect
+        base_params = {
+            "config": agent_config,
+            "context_manager": self.context_manager,
+            "event_bus": self.event_bus,
+            "task_queue": self.task_queue,
+        }
+        
+        # Inspect agent class signature to determine parameter names
+        sig = inspect.signature(agent_class.__init__)
+        param_names = list(sig.parameters.keys())
+        
+        # Add router parameter (different agents use different names)
+        if "router" in param_names:
+            base_params["router"] = self.router
+        elif "message_router" in param_names:
+            base_params["message_router"] = self.router
+        
+        # Add LLM configuration if agent accepts it
+        if "llm_config" in param_names and llm_config:
+            base_params["llm_config"] = llm_config
+        elif "llm_configs" in param_names and llm_config:
+            # Oracle agent expects a list of configs for consensus
+            base_params["llm_configs"] = [llm_config]
+        
+        # Add agent-specific parameters
+        if agent_type == AgentType.RUNNER:
+            # Runner agent needs project_dir
+            if "project_dir" in param_names:
+                base_params["project_dir"] = "./generated_tests"
+        elif agent_type == AgentType.CONTRACTOR:
+            # Contractor agent may need output_dir
+            if "output_dir" in param_names:
+                base_params["output_dir"] = "./generated_tests"
+        
         # Create agent
-        agent = agent_class(
-            config=agent_config,
-            context_manager=self.context_manager,
-            router=self.router,
-            event_bus=self.event_bus,
-            task_queue=self.task_queue,
-            llm_config=llm_config,
-        )
+        agent = agent_class(**base_params)
         
         # Store in registry
         self._agents[agent_type] = agent
@@ -267,23 +296,20 @@ class AgentFactory:
             Default agent configuration
         """
         # Get agent-specific settings from config
-        agent_settings = self.config.get("agents", {}).get(
-            agent_type.value,
-            {},
-        )
+        agent_settings = self.config.agents.get(agent_type.value, None)
         
         return AgentConfig(
             agent_type=agent_type,
-            max_concurrent_tasks=agent_settings.get("max_concurrent_tasks", 5),
-            task_timeout=agent_settings.get("task_timeout", 300.0),
-            message_timeout=agent_settings.get("message_timeout", 30.0),
-            retry_limit=agent_settings.get("retry_limit", 3),
-            enable_metrics=agent_settings.get("enable_metrics", True),
-            enable_tracing=agent_settings.get("enable_tracing", True),
-            custom_config=agent_settings.get("config", {}),
+            max_concurrent_tasks=agent_settings.max_retries if agent_settings and hasattr(agent_settings, 'max_retries') else 5,
+            task_timeout=agent_settings.timeout if agent_settings and hasattr(agent_settings, 'timeout') else 300.0,
+            message_timeout=30.0,
+            retry_limit=agent_settings.max_retries if agent_settings and hasattr(agent_settings, 'max_retries') else 3,
+            enable_metrics=True,
+            enable_tracing=True,
+            custom_config={},
         )
     
-    def _get_llm_config(self, agent_type: AgentType) -> Dict:
+    def _get_llm_config(self, agent_type: AgentType) -> Optional[Dict]:
         """
         Get LLM configuration for an agent type.
         
@@ -291,21 +317,21 @@ class AgentFactory:
             agent_type: Type of agent
             
         Returns:
-            LLM configuration
+            LLM configuration dictionary or None
         """
-        llm_config = self.config.get("llm", {})
+        # Get LLM models from config
+        if not self.config.llm_models:
+            return None
         
-        # Get agent-specific LLM settings if available
-        agent_llm = self.config.get("agents", {}).get(
-            agent_type.value,
-            {},
-        ).get("llm", {})
+        # Try to find the first available LLM config
+        # Different agents may need different models in the future
+        for model_config in self.config.llm_models.values():
+            if hasattr(model_config, 'model_dump'):
+                return model_config.model_dump()
+            elif isinstance(model_config, dict):
+                return model_config
         
-        # Merge with defaults
-        return {
-            **llm_config,
-            **agent_llm,
-        }
+        return None
 
 
 class AgentOrchestrator:

@@ -87,8 +87,7 @@ class InductorAgent(BaseAgent):
         # Register message handlers
         self.register_handlers()
         
-        # Subscribe to relevant events
-        self._subscribe_to_events()
+        # Note: Event subscription will happen during start() lifecycle method
     
     def register_handlers(self):
         """Register message handlers for this agent."""
@@ -120,7 +119,7 @@ class InductorAgent(BaseAgent):
         """
         task_type = task.task_type
         
-        self.logger.info(f"Processing task: {task_type} (ID: {task.task_id})")
+        self.logger.info(f"Processing task: {task_type} (ID: {task.id})")
         
         if task_type == "extract_context":
             return await self._extract_context_from_collection(task)
@@ -136,20 +135,17 @@ class InductorAgent(BaseAgent):
         Extract endpoint contexts from a Bruno collection.
         
         Args:
-            task: Task with collection_path in data
+            task: Task with collection_path in payload
             
         Returns:
             Dictionary with extracted contexts
         """
-        collection_path = task.data.get("collection_path")
-        session_id = task.data.get("session_id")
-        enrich_with_llm = task.data.get("enrich_with_llm", False)
+        collection_path = task.payload.get("collection_path")
+        session_id = task.session_id  # Use task.session_id directly (already a UUID)
+        enrich_with_llm = task.payload.get("enrich_with_llm", False)
         
         if not collection_path:
             raise ValueError("collection_path is required")
-        
-        if not session_id:
-            raise ValueError("session_id is required")
         
         self.logger.info(f"Extracting context from: {collection_path}")
         
@@ -178,10 +174,10 @@ class InductorAgent(BaseAgent):
         stored_contexts = []
         for endpoint in endpoints:
             try:
-                # Store endpoint context
-                await self.context_manager.store_endpoint_context(
-                    session_id=UUID(session_id),
-                    context=endpoint
+                # Add endpoint context to session
+                await self.context_manager.add_endpoint(
+                    session_id=session_id,
+                    endpoint=endpoint
                 )
                 stored_contexts.append(endpoint.id)
                 self.logger.debug(f"Stored context for endpoint: {endpoint.name}")
@@ -192,12 +188,12 @@ class InductorAgent(BaseAgent):
         await self.publish_event(
             "context_extracted",
             {
-                "session_id": session_id,
                 "collection_path": collection_path,
                 "endpoints_count": len(endpoints),
                 "context_ids": [str(ctx_id) for ctx_id in stored_contexts],
                 "agent": self.agent_type.value,
-            }
+            },
+            session_id=session_id  # Pass session_id as separate argument
         )
         
         return {
@@ -212,12 +208,12 @@ class InductorAgent(BaseAgent):
         Parse a Bruno collection without storing contexts.
         
         Args:
-            task: Task with collection_path in data
+            task: Task with collection_path in payload
             
         Returns:
             Dictionary with parse results
         """
-        collection_path = task.data.get("collection_path")
+        collection_path = task.payload.get("collection_path")
         
         if not collection_path:
             raise ValueError("collection_path is required")
@@ -240,20 +236,20 @@ class InductorAgent(BaseAgent):
         Enrich an existing endpoint context with LLM.
         
         Args:
-            task: Task with context_id in data
+            task: Task with context_id in payload
             
         Returns:
             Dictionary with enrichment results
         """
-        context_id = task.data.get("context_id")
-        session_id = task.data.get("session_id")
+        context_id = task.payload.get("context_id")
+        session_id = task.session_id  # Use task.session_id directly (already a UUID)
         
-        if not context_id or not session_id:
-            raise ValueError("context_id and session_id are required")
+        if not context_id:
+            raise ValueError("context_id is required")
         
         # Retrieve context from ContextManager
         context = await self.context_manager.get_endpoint_context(
-            session_id=UUID(session_id),
+            session_id=session_id,
             context_id=UUID(context_id)
         )
         
@@ -446,10 +442,10 @@ class InductorAgent(BaseAgent):
         if request.auth and request.auth.mode != "none":
             score += 1.0
         
-        # Scripts present (pre-request or tests)
+        # Scripts present (pre-request or post-response)
         max_score += 1.0
         if request.script:
-            if request.script.pre_request or request.script.tests:
+            if request.script.req or request.script.res:
                 score += 1.0
         
         return score / max_score if max_score > 0 else 0.0

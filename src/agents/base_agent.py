@@ -120,6 +120,7 @@ class BaseAgent(ABC):
         self.agent_type = config.agent_type
         self.context_manager = context_manager
         self.router = router
+        self.message_router = router  # Alias for compatibility
         self.event_bus = event_bus
         self.task_queue = task_queue
         self.llm_config = llm_config or {}
@@ -144,7 +145,7 @@ class BaseAgent(ABC):
         self._stop_event = asyncio.Event()
         self._running_tasks: List[asyncio.Task] = []
         
-        # Metrics
+        # Metrics (expose as public property for subclasses)
         self._metrics = {
             "tasks_processed": 0,
             "tasks_succeeded": 0,
@@ -153,6 +154,8 @@ class BaseAgent(ABC):
             "messages_received": 0,
             "errors": 0,
         }
+        # Public metrics property for subclass access
+        self.metrics = self._metrics
         
         # Register with router
         self.router.register_handler(self.agent_type, self.handle_message)
@@ -628,12 +631,12 @@ class BaseAgent(ABC):
             self._metrics["errors"] += 1
             
             logger.error(
-                f"Task failed",
+                f"Task failed: {str(e)}",
                 agent_type=self.agent_type.value,
                 task_type=task.task_type,
                 task_id=str(task_id),
-                error=str(e),
             )
+            logger.exception(e)  # Log full traceback
             
             # Retry logic
             if task.retry_count < task.max_retries:

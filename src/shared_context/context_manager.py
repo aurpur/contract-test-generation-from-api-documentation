@@ -305,6 +305,23 @@ class ContextManager:
         
         return tests
     
+    async def get_generated_tests(
+        self,
+        session_id: UUID,
+        endpoint_id: Optional[UUID] = None,
+    ) -> List[GeneratedTest]:
+        """
+        Alias for get_tests() for backward compatibility.
+        
+        Args:
+            session_id: Session UUID
+            endpoint_id: Optional endpoint UUID to filter by
+            
+        Returns:
+            List of generated tests
+        """
+        return await self.get_tests(session_id=session_id, endpoint_id=endpoint_id)
+    
     # ==================== Execution Results ====================
     
     async def add_execution_result(

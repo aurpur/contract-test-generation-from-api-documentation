@@ -107,23 +107,8 @@ class ContractorAgent(BaseAgent):
     
     def register_handlers(self) -> None:
         """Register message handlers for code generation."""
-        self.message_router.register(
-            agent_type=AgentType.CONTRACTOR,
-            message_type="generate_tests",
-            handler=self._handle_generate_tests_message,
-        )
-        
-        self.message_router.register(
-            agent_type=AgentType.CONTRACTOR,
-            message_type="generate_single_test",
-            handler=self._handle_generate_single_test_message,
-        )
-        
-        self.message_router.register(
-            agent_type=AgentType.CONTRACTOR,
-            message_type="generate_pom",
-            handler=self._handle_generate_pom_message,
-        )
+        # Message routing is handled by BaseAgent
+        pass
     
     async def process_task(self, task: Task) -> Dict[str, Any]:
         """
@@ -163,6 +148,10 @@ class ContractorAgent(BaseAgent):
             logger.warning("No oracle IDs provided for test generation")
             return {"status": "error", "error": "No oracle IDs provided"}
         
+        # Convert session_id to UUID if it's a string
+        if isinstance(session_id, str):
+            session_id = UUID(session_id)
+        
         logger.info(f"Generating tests for {len(oracle_ids)} oracles")
         
         test_ids = []
@@ -172,10 +161,14 @@ class ContractorAgent(BaseAgent):
         
         for oracle_id in oracle_ids:
             try:
-                # Retrieve oracle
-                oracle = await self.context_manager.get_oracle(
-                    oracle_id=UUID(oracle_id) if isinstance(oracle_id, str) else oracle_id
+                # Retrieve oracle from session oracles
+                oracle_uuid = UUID(oracle_id) if isinstance(oracle_id, str) else oracle_id
+                all_oracles = await self.context_manager.get_oracles(
+                    session_id=session_id
                 )
+                
+                # Find the specific oracle
+                oracle = next((o for o in all_oracles if o.id == oracle_uuid), None)
                 
                 if not oracle:
                     logger.warning(f"Oracle not found: {oracle_id}")
@@ -183,8 +176,9 @@ class ContractorAgent(BaseAgent):
                     continue
                 
                 # Retrieve endpoint context
-                context = await self.context_manager.get_endpoint_context(
-                    context_id=oracle.endpoint_id
+                context = await self.context_manager.get_endpoint(
+                    session_id=session_id,
+                    endpoint_id=oracle.endpoint_id
                 )
                 
                 if not context:
@@ -197,7 +191,7 @@ class ContractorAgent(BaseAgent):
                 
                 if generated_test:
                     # Store test
-                    await self.context_manager.store_generated_test(generated_test)
+                    await self.context_manager.add_test(session_id, generated_test)
                     test_ids.append(str(generated_test.id))
                     
                     # Update metrics
@@ -226,7 +220,7 @@ class ContractorAgent(BaseAgent):
         if test_ids and session_id:
             await self.event_bus.publish(
                 event_type="tests_generated",
-                data={
+                event_data={
                     "session_id": str(session_id),
                     "test_ids": test_ids,
                     "tests_count": len(test_ids),
@@ -283,7 +277,10 @@ class ContractorAgent(BaseAgent):
             return {"status": "error", "error": "Failed to generate test"}
         
         # Store test
-        await self.context_manager.store_generated_test(generated_test)
+        session_id_uuid = task.payload.get("session_id")
+        if isinstance(session_id_uuid, str):
+            session_id_uuid = UUID(session_id_uuid)
+        await self.context_manager.add_test(session_id_uuid, generated_test)
         
         lines = len(generated_test.test_code.split('\n'))
         assertions = self._count_assertions(generated_test.test_code)
@@ -630,7 +627,7 @@ class ContractorAgent(BaseAgent):
                 "scenario_title": self._generate_scenario_title(context),
                 "scenario_description": context.description or "",
                 "expected_status_code": oracle.status_code,
-                "expected_response_time_ms": oracle.expected_response_time_ms,
+                "expected_response_time_ms": getattr(oracle, 'expected_response_time_ms', 1000),
                 "oracle_confidence": oracle.confidence_score,
             }
             

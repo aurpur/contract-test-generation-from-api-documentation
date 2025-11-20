@@ -330,23 +330,8 @@ class RunnerAgent(BaseAgent):
     
     def register_handlers(self) -> None:
         """Register message handlers for test execution."""
-        self.message_router.register(
-            agent_type=AgentType.RUNNER,
-            message_type="execute_tests",
-            handler=self._handle_execute_tests_message,
-        )
-        
-        self.message_router.register(
-            agent_type=AgentType.RUNNER,
-            message_type="execute_single_test",
-            handler=self._handle_execute_single_test_message,
-        )
-        
-        self.message_router.register(
-            agent_type=AgentType.RUNNER,
-            message_type="analyze_failures",
-            handler=self._handle_analyze_failures_message,
-        )
+        # Message routing is handled by BaseAgent
+        pass
     
     async def process_task(self, task: Task) -> Dict[str, Any]:
         """
@@ -389,11 +374,15 @@ class RunnerAgent(BaseAgent):
         logger.info(f"Executing {len(test_ids)} tests")
         
         # Retrieve tests
+        session_id_uuid = session_id
+        if isinstance(session_id_uuid, str):
+            session_id_uuid = UUID(session_id_uuid)
+        
+        all_tests = await self.context_manager.get_tests(session_id=session_id_uuid)
         tests = []
         for test_id in test_ids:
-            test = await self.context_manager.get_generated_test(
-                test_id=UUID(test_id) if isinstance(test_id, str) else test_id
-            )
+            test_uuid = UUID(test_id) if isinstance(test_id, str) else test_id
+            test = next((t for t in all_tests if t.id == test_uuid), None)
             if test:
                 tests.append(test)
         
@@ -419,7 +408,7 @@ class RunnerAgent(BaseAgent):
         for test in tests:
             result = await self._create_execution_result(test, junit_results, output)
             if result:
-                await self.context_manager.store_execution_result(result)
+                await self.context_manager.add_execution_result(session_id_uuid, result)
                 execution_results.append(result)
         
         # Update metrics
@@ -439,7 +428,7 @@ class RunnerAgent(BaseAgent):
         if session_id:
             await self.event_bus.publish(
                 event_type="tests_executed",
-                data={
+                event_data={
                     "session_id": str(session_id),
                     "tests_run": len(execution_results),
                     "tests_passed": len([r for r in execution_results if r.passed]),
@@ -473,9 +462,13 @@ class RunnerAgent(BaseAgent):
             return {"status": "error", "error": "No test_id provided"}
         
         # Retrieve test
-        test = await self.context_manager.get_generated_test(
-            test_id=UUID(test_id) if isinstance(test_id, str) else test_id
-        )
+        session_id_uuid = session_id
+        if isinstance(session_id_uuid, str):
+            session_id_uuid = UUID(session_id_uuid)
+        
+        all_tests = await self.context_manager.get_tests(session_id=session_id_uuid)
+        test_uuid = UUID(test_id) if isinstance(test_id, str) else test_id
+        test = next((t for t in all_tests if t.id == test_uuid), None)
         
         if not test:
             return {"status": "error", "error": f"Test not found: {test_id}"}
@@ -496,7 +489,7 @@ class RunnerAgent(BaseAgent):
         result = await self._create_execution_result(test, junit_results, output)
         
         if result:
-            await self.context_manager.store_execution_result(result)
+            await self.context_manager.add_execution_result(session_id_uuid, result)
             
             self._metrics["tests_run"] += 1
             if result.passed:
@@ -576,16 +569,27 @@ class RunnerAgent(BaseAgent):
         test_dir = self.project_dir / "src" / "test" / "java" / "generated"
         test_dir.mkdir(parents=True, exist_ok=True)
         
+        # Create features directory for Gherkin files
+        features_dir = test_dir / "features"
+        features_dir.mkdir(parents=True, exist_ok=True)
+        
         for test in tests:
-            # Generate filename from class name
+            # Write Java test file
             filename = f"{test.test_class_name}.java"
             filepath = test_dir / filename
             
-            # Write test code
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(test.test_code)
             
             logger.info(f"Written test file: {filepath}")
+            
+            # Write Gherkin feature file if present
+            if test.feature_file_name and test.feature_content:
+                feature_path = features_dir / test.feature_file_name
+                with open(feature_path, 'w', encoding='utf-8') as f:
+                    f.write(test.feature_content)
+                
+                logger.info(f"Written feature file: {feature_path}")
     
     async def _create_execution_result(
         self,
