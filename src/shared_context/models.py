@@ -91,6 +91,7 @@ class Oracle(BaseModel):
     """Validation rule/oracle for an endpoint."""
     
     id: UUID = Field(default_factory=uuid4)
+    name: str = Field(..., description="Oracle name (e.g., 'Get Users Oracle')")
     endpoint_id: UUID = Field(..., description="Associated endpoint ID")
     
     # Validation rules
@@ -133,6 +134,14 @@ class GeneratedTest(BaseModel):
     test_class_name: str = Field(..., description="Java test class name")
     test_method_name: str = Field(..., description="Java test method name")
     test_code: str = Field(..., description="Complete Java test code")
+    
+    # Gherkin feature
+    feature_file_name: Optional[str] = Field(default=None, description="Gherkin feature file name")
+    feature_content: Optional[str] = Field(default=None, description="Complete Gherkin feature content")
+    
+    # Test statistics
+    line_count: int = Field(default=0, description="Number of lines in test code")
+    assertion_count: int = Field(default=0, description="Number of assertions in test")
     
     # Test configuration
     setup_code: Optional[str] = Field(default=None)

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest:*)",
+      "Bash(PYTHONPATH=/Users/aurelikama/Documents/Projet/contract-test-generation-from-api-documentation/src:$PYTHONPATH pytest:*)",
+      "Bash(PYTHONPATH=src:$PYTHONPATH pytest:*)",
+      "Bash(PYTHONPATH=src:$PYTHONPATH mutmut run:*)",
+      "Bash(tee:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

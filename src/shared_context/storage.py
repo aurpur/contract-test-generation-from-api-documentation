@@ -552,18 +552,17 @@ async def create_storage_backend() -> PostgreSQLRedisStorage:
     """
     config = get_config()
     
-    # Get database configuration
-    db_config = config.config.get("database", {})
-    postgres_url = db_config.get(
-        "postgres_url",
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/contract_tests"
-    )
+    # Get database configuration  
+    postgres_url = getattr(config.database, 'url', 'sqlite+aiosqlite:///:memory:')
     
-    redis_config = config.config.get("redis", {})
-    redis_host = redis_config.get("host", "localhost")
-    redis_port = redis_config.get("port", 6379)
-    redis_db = redis_config.get("db", 0)
-    cache_ttl = redis_config.get("cache_ttl", 3600)
+    # Parse redis URL - format: redis://host:port/db
+    redis_url = getattr(config.redis, 'url', 'redis://localhost:6379/0')
+    redis_parts = redis_url.replace('redis://', '').split('/')
+    host_port = redis_parts[0].split(':')
+    redis_host = host_port[0] if len(host_port) > 0 else 'localhost'
+    redis_port = int(host_port[1]) if len(host_port) > 1 else 6379
+    redis_db = int(redis_parts[1]) if len(redis_parts) > 1 else 0
+    cache_ttl = 3600  # Default cache TTL
     
     # Create storage
     storage = PostgreSQLRedisStorage(
@@ -578,3 +577,154 @@ async def create_storage_backend() -> PostgreSQLRedisStorage:
     await storage.initialize()
     
     return storage
+
+
+# ==================== In-Memory Storage (for Development) ====================
+
+
+class InMemoryStorage(StorageBackend):
+    """
+    Simple in-memory storage backend for development and testing.
+    
+    This backend stores all data in memory (Python dictionaries) and does not
+    persist data to disk. Useful for quick testing without database setup.
+    """
+    
+    def __init__(self):
+        """Initialize in-memory storage."""
+        self.sessions: Dict[UUID, WorkflowSession] = {}
+        self.messages: Dict[UUID, AgentMessage] = {}
+        self.inconsistencies: Dict[UUID, InconsistencyReport] = {}
+        self.quality_metrics: Dict[UUID, QualityMetrics] = {}
+        self.llm_metrics: Dict[UUID, LLMPerformanceMetrics] = {}
+        self.completeness: Dict[UUID, CompletenessAnalysis] = {}
+        
+        logger.info("InMemoryStorage initialized (no persistence)")
+    
+    async def initialize(self) -> None:
+        """Initialize storage (no-op for in-memory)."""
+        logger.info("InMemoryStorage ready (no initialization needed)")
+    
+    # ==================== Session Operations ====================
+    
+    async def save_session(self, session: WorkflowSession) -> None:
+        """Save a workflow session."""
+        self.sessions[session.id] = session
+        logger.debug(f"Saved session {session.id} to memory")
+    
+    async def get_session(self, session_id: UUID) -> Optional[WorkflowSession]:
+        """Retrieve a workflow session."""
+        return self.sessions.get(session_id)
+    
+    async def delete_session(self, session_id: UUID) -> None:
+        """Delete a workflow session."""
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            logger.debug(f"Deleted session {session_id} from memory")
+    
+    # ==================== Message Operations ====================
+    
+    async def save_message(self, message: AgentMessage) -> None:
+        """Save an agent message."""
+        self.messages[message.id] = message
+        logger.debug(f"Saved message {message.id} to memory")
+    
+    async def get_message(self, message_id: UUID) -> Optional[AgentMessage]:
+        """Retrieve an agent message."""
+        return self.messages.get(message_id)
+    
+    async def get_messages(
+        self,
+        session_id: UUID,
+        to_agent: Optional[AgentType] = None,
+        from_agent: Optional[AgentType] = None,
+    ) -> List[AgentMessage]:
+        """Get messages for a session."""
+        messages = [
+            msg for msg in self.messages.values()
+            if msg.session_id == session_id
+        ]
+        
+        if from_agent:
+            messages = [msg for msg in messages if msg.from_agent == from_agent]
+        
+        if to_agent:
+            messages = [msg for msg in messages if msg.to_agent == to_agent]
+        
+        return sorted(messages, key=lambda m: m.created_at)
+    
+    async def get_session_messages(
+        self,
+        session_id: UUID,
+        from_agent: Optional[AgentType] = None,
+        to_agent: Optional[AgentType] = None,
+    ) -> List[AgentMessage]:
+        """Retrieve messages for a session (alias for get_messages)."""
+        return await self.get_messages(session_id, to_agent, from_agent)
+    
+    # ==================== Metrics Operations ====================
+    
+    async def save_inconsistency_report(self, report: InconsistencyReport) -> None:
+        """Save an inconsistency report."""
+        self.inconsistencies[report.id] = report
+    
+    async def get_session_inconsistencies(
+        self,
+        session_id: UUID,
+    ) -> List[InconsistencyReport]:
+        """Retrieve inconsistency reports for a session."""
+        return [
+            report for report in self.inconsistencies.values()
+            if report.session_id == session_id
+        ]
+    
+    async def save_quality_metrics(self, metrics: QualityMetrics) -> None:
+        """Save quality metrics."""
+        self.quality_metrics[metrics.id] = metrics
+    
+    async def get_session_quality_metrics(
+        self,
+        session_id: UUID,
+    ) -> List[QualityMetrics]:
+        """Retrieve quality metrics for a session."""
+        return [
+            metrics for metrics in self.quality_metrics.values()
+            if metrics.session_id == session_id
+        ]
+    
+    async def save_llm_performance(self, metrics: LLMPerformanceMetrics) -> None:
+        """Save LLM performance metrics."""
+        self.llm_metrics[metrics.id] = metrics
+    
+    async def get_llm_performance(
+        self,
+        agent_type: AgentType,
+        model_name: str,
+    ) -> Optional[LLMPerformanceMetrics]:
+        """Retrieve LLM performance metrics."""
+        for metrics in self.llm_metrics.values():
+            if (metrics.agent_type == agent_type and 
+                metrics.model_name == model_name):
+                return metrics
+        return None
+    
+    async def save_completeness_analysis(
+        self,
+        analysis: CompletenessAnalysis,
+    ) -> None:
+        """Save completeness analysis."""
+        self.completeness[analysis.id] = analysis
+    
+    async def get_session_completeness(
+        self,
+        session_id: UUID,
+    ) -> Optional[CompletenessAnalysis]:
+        """Retrieve completeness analysis for a session."""
+        for analysis in self.completeness.values():
+            if analysis.session_id == session_id:
+                return analysis
+        return None
+    
+    async def close(self) -> None:
+        """Close storage (no-op for in-memory)."""
+        logger.info("InMemoryStorage closed (data discarded)")

@@ -197,6 +197,28 @@ class LLMClientFactory:
         return client_class(model=model, **kwargs)
     
     @classmethod
+    def create_client(cls, config: Dict[str, Any]) -> BaseLLMClient:
+        """
+        Create an LLM client from configuration dictionary.
+        
+        Args:
+            config: Configuration dict with 'provider', 'model', and optional parameters
+            
+        Returns:
+            LLM client instance
+        """
+        provider = config.get("provider")
+        model = config.get("model")
+        
+        if not provider or not model:
+            raise ValueError("Configuration must include 'provider' and 'model'")
+        
+        # Extract additional parameters
+        kwargs = {k: v for k, v in config.items() if k not in ["provider", "model"]}
+        
+        return cls.create(provider, model, **kwargs)
+    
+    @classmethod
     def register_client(cls, provider: str, client_class: type):
         """
         Register a new LLM client.
