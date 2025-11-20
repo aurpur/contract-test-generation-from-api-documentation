@@ -1,0 +1,71 @@
+{
+  "session_id": "1d8293f9-23cd-45f3-bd07-6352dd48e44a",
+  "timestamp": "2025-11-20T01:12:17.396975",
+  "duration_seconds": 71.03102588653564,
+  "workflow_phases": [
+    {
+      "phase": 1,
+      "name": "Context Extraction",
+      "agent": "Inductor",
+      "endpoints_extracted": 1,
+      "endpoints": [
+        {
+          "id": "f59bbbfa-1400-48f0-9c1d-f4b7d432e059",
+          "name": "Get Users",
+          "method": "GET",
+          "path": "https://jsonplaceholder.typicode.com/users"
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Oracle Generation",
+      "agent": "Oracle",
+      "oracles_generated": 1,
+      "oracles": [
+        {
+          "id": "43af865a-d800-4eaa-98dc-4f58dbe4b9bd",
+          "endpoint_id": "f59bbbfa-1400-48f0-9c1d-f4b7d432e059",
+          "confidence": 0.5,
+          "assertions": 0
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Test Generation",
+      "agent": "Contractor",
+      "tests_generated": 1,
+      "tests": [
+        {
+          "id": "14278076-6c4a-4cc8-9697-0a6d32e92bce",
+          "class_name": "GetGetUsersTest",
+          "lines": 59,
+          "assertions": 1,
+          "has_gherkin": true
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Test Execution",
+      "agent": "Runner",
+      "tests_executed": 1,
+      "results": [
+        {
+          "test_id": "14278076-6c4a-4cc8-9697-0a6d32e92bce",
+          "passed": true,
+          "execution_time_ms": 918.0
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_endpoints": 1,
+    "total_oracles": 1,
+    "total_tests": 1,
+    "tests_passed": 1,
+    "tests_failed": 0,
+    "pass_rate": 100.0
+  }
+}

@@ -361,6 +361,10 @@ class ContractorAgent(BaseAgent):
                 context, oracle, template_vars
             )
             
+            # Calculate test statistics
+            line_count = len(formatted_code.strip().split('\n'))
+            assertion_count = formatted_code.count('.assertThat(') + formatted_code.count('assertEquals(')
+            
             # Create GeneratedTest
             generated_test = GeneratedTest(
                 endpoint_id=context.id,
@@ -370,6 +374,8 @@ class ContractorAgent(BaseAgent):
                 test_code=formatted_code,
                 feature_file_name=feature_file_name,
                 feature_content=feature_content,
+                line_count=line_count,
+                assertion_count=assertion_count,
                 setup_code=None,
                 teardown_code=None,
                 dependencies=["io.rest-assured:rest-assured:5.3.2"],

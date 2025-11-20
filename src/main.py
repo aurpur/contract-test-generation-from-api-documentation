@@ -5,8 +5,9 @@ Author: Aurel IKAMA HONEY
 """
 import asyncio
 import sys
+import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 # Add src to path
 src_path = Path(__file__).parent
@@ -48,11 +49,24 @@ async def run_workflow(
     logger.info("Starting Contract Test Generation Workflow")
     logger.info("=" * 80)
     
+    # Track workflow start time
+    start_time = time.time()
+    log_entries: List[Dict[str, Any]] = []
+    
     try:
         # 1. Initialize components
         logger.info("Initializing system components...")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "INFO",
+            "message": "Initializing system components"
+        })
         
         config = get_config()
+        
+        # Initialize report generator
+        from utils.report_generator import ReportGenerator
+        report_gen = ReportGenerator(output_dir=Path("reports"))
         
         # Initialize storage backend (in-memory for now)
         from shared_context.storage import InMemoryStorage
@@ -137,6 +151,11 @@ async def run_workflow(
         
         endpoints = await context_manager.get_endpoints(session_id)
         logger.success(f"✓ Extracted {len(endpoints)} endpoints")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "SUCCESS",
+            "message": f"Phase 1 complete: Extracted {len(endpoints)} endpoints"
+        })
         
         # 5. Execute Oracle - Generate test oracles
         logger.info("=" * 80)
@@ -156,6 +175,11 @@ async def run_workflow(
         
         oracles = await context_manager.get_oracles(session_id)
         logger.success(f"✓ Generated {len(oracles)} oracles")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "SUCCESS",
+            "message": f"Phase 2 complete: Generated {len(oracles)} oracles"
+        })
         
         # 6. Execute Contractor - Generate test code
         logger.info("=" * 80)
@@ -202,6 +226,11 @@ async def run_workflow(
         
         results = await context_manager.get_execution_results(session_id)
         logger.success(f"✓ Executed {len(results)} tests")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "SUCCESS",
+            "message": f"Phase 4 complete: Executed {len(results)} tests"
+        })
         
         # 8. Display summary
         logger.info("=" * 80)
@@ -225,7 +254,57 @@ async def run_workflow(
             logger.info(f"    - Tasks succeeded: {agent_metrics.get('tasks_succeeded', 0)}")
             logger.info(f"    - Tasks failed: {agent_metrics.get('tasks_failed', 0)}")
         
-        # 9. Stop agents
+        # Calculate workflow duration
+        workflow_duration = time.time() - start_time
+        
+        # 9. Generate reports
+        logger.info("\n" + "=" * 80)
+        logger.info("Generating Reports")
+        logger.info("=" * 80)
+        
+        # Agent execution report
+        agent_report = report_gen.generate_agent_execution_report(
+            session_id=session_id,
+            metrics=metrics,
+            duration=workflow_duration,
+        )
+        logger.success(f"✓ Agent execution report: {agent_report}")
+        
+        # Test execution report
+        test_report = report_gen.generate_test_execution_report(
+            session_id=session_id,
+            results=results,
+            tests=tests,
+        )
+        logger.success(f"✓ Test execution report: {test_report}")
+        
+        # Oracle list
+        oracle_list = report_gen.generate_oracle_list(
+            session_id=session_id,
+            oracles=oracles,
+            endpoints=endpoints,
+        )
+        logger.success(f"✓ Oracle list: {oracle_list}")
+        
+        # Execution trace
+        trace_file = report_gen.generate_execution_trace(
+            session_id=session_id,
+            endpoints=endpoints,
+            oracles=oracles,
+            tests=tests,
+            results=results,
+            duration=workflow_duration,
+        )
+        logger.success(f"✓ Execution trace: {trace_file}")
+        
+        # Workflow log
+        log_file = report_gen.generate_workflow_log(
+            session_id=session_id,
+            log_entries=log_entries,
+        )
+        logger.success(f"✓ Workflow log: {log_file}")
+        
+        # 10. Stop agents
         logger.info("\nStopping agents...")
         await orchestrator.stop()
         logger.success("✓ All agents stopped")

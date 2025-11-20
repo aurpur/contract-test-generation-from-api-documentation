@@ -138,6 +138,10 @@ class GeneratedTest(BaseModel):
     feature_file_name: Optional[str] = Field(default=None, description="Gherkin feature file name")
     feature_content: Optional[str] = Field(default=None, description="Complete Gherkin feature content")
     
+    # Test statistics
+    line_count: int = Field(default=0, description="Number of lines in test code")
+    assertion_count: int = Field(default=0, description="Number of assertions in test")
+    
     # Test configuration
     setup_code: Optional[str] = Field(default=None)
     teardown_code: Optional[str] = Field(default=None)
