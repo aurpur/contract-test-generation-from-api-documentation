@@ -357,6 +357,7 @@
 
 ## Phase 5 : Validation & Métriques (Semaine 9-10)
 
+- [ ] Dams l'agent Oracle fait des call sur les end-points pour collecter des données réelles et améliorer la précision des oracles de manière iterative.
 - [ ] Ajouter un agent de validation des oracles (ValidationAgent)
 - [ ] Ajouter un agent de validation du code généré (CodeQualityAgent), en plus de la qualité du code, mesure aussi l'écart entre oracles et code généré
 - [ ] Ajouter une fonction que l'agent CodeQualityAgent utilise pour inspecter les smells et antipatterns dans le code Java généré.
