@@ -66,10 +66,32 @@ data/metrics/*
 !data/oracles/.gitkeep
 !data/metrics/.gitkeep
 
-# Generated tests
+# Generated tests (legacy - kept for compatibility)
 generated_tests/target/
 generated_tests/src/test/java/generated/*.java
 !generated_tests/src/test/java/generated/.gitkeep
+
+# Output directory (new centralized structure)
+output/tests/java/*.java
+output/tests/gherkin/*.feature
+output/reports/html/*.html
+output/reports/graphs/*.png
+output/reports/logs/*.log
+output/reports/traces/*.json
+output/oracles/*.txt
+output/oracles/*.json
+output/contexts/*.json
+
+# Keep directory structure
+!output/tests/java/.gitkeep
+!output/tests/gherkin/.gitkeep
+!output/reports/html/.gitkeep
+!output/reports/graphs/.gitkeep
+!output/reports/logs/.gitkeep
+!output/reports/traces/.gitkeep
+!output/oracles/.gitkeep
+!output/contexts/.gitkeep
+!output/README.md
 
 # Experiments results
 experiments/results/*

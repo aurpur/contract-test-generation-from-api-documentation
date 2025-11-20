@@ -560,36 +560,54 @@ class RunnerAgent(BaseAgent):
     
     async def _write_tests_to_disk(self, tests: List[GeneratedTest]) -> None:
         """
-        Write test files to disk.
+        Write test files to disk in organized structure.
         
         Args:
             tests: List of generated tests
         """
-        # Determine test source directory
-        test_dir = self.project_dir / "src" / "test" / "java" / "generated"
-        test_dir.mkdir(parents=True, exist_ok=True)
+        # Determine Java test directory
+        java_dir = self.project_dir / "java"
+        java_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create features directory for Gherkin files
-        features_dir = test_dir / "features"
-        features_dir.mkdir(parents=True, exist_ok=True)
+        # Determine Gherkin features directory
+        gherkin_dir = self.project_dir / "gherkin"
+        gherkin_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Also maintain Maven structure for execution compatibility
+        maven_test_dir = self.project_dir / "src" / "test" / "java" / "generated"
+        maven_test_dir.mkdir(parents=True, exist_ok=True)
+        
+        maven_features_dir = maven_test_dir / "features"
+        maven_features_dir.mkdir(parents=True, exist_ok=True)
         
         for test in tests:
-            # Write Java test file
-            filename = f"{test.test_class_name}.java"
-            filepath = test_dir / filename
+            # Write Java test file to output/tests/java/
+            java_filename = f"{test.test_class_name}.java"
+            java_filepath = java_dir / java_filename
             
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(java_filepath, 'w', encoding='utf-8') as f:
                 f.write(test.test_code)
             
-            logger.info(f"Written test file: {filepath}")
+            logger.info(f"Written test file: {java_filepath}")
+            
+            # Also copy to Maven directory for execution
+            maven_filepath = maven_test_dir / java_filename
+            with open(maven_filepath, 'w', encoding='utf-8') as f:
+                f.write(test.test_code)
             
             # Write Gherkin feature file if present
             if test.feature_file_name and test.feature_content:
-                feature_path = features_dir / test.feature_file_name
-                with open(feature_path, 'w', encoding='utf-8') as f:
+                # Write to output/tests/gherkin/
+                gherkin_filepath = gherkin_dir / test.feature_file_name
+                with open(gherkin_filepath, 'w', encoding='utf-8') as f:
                     f.write(test.feature_content)
                 
-                logger.info(f"Written feature file: {feature_path}")
+                logger.info(f"Written feature file: {gherkin_filepath}")
+                
+                # Also copy to Maven directory
+                maven_feature_path = maven_features_dir / test.feature_file_name
+                with open(maven_feature_path, 'w', encoding='utf-8') as f:
+                    f.write(test.feature_content)
     
     async def _create_execution_result(
         self,

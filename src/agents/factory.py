@@ -145,13 +145,13 @@ class AgentFactory:
         
         # Add agent-specific parameters
         if agent_type == AgentType.RUNNER:
-            # Runner agent needs project_dir
+            # Runner agent may need project_dir
             if "project_dir" in param_names:
-                base_params["project_dir"] = "./generated_tests"
+                base_params["project_dir"] = "./output/tests"
         elif agent_type == AgentType.CONTRACTOR:
             # Contractor agent may need output_dir
             if "output_dir" in param_names:
-                base_params["output_dir"] = "./generated_tests"
+                base_params["output_dir"] = "./output/tests"
         
         # Create agent
         agent = agent_class(**base_params)

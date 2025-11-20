@@ -66,7 +66,7 @@ async def run_workflow(
         
         # Initialize report generator
         from utils.report_generator import ReportGenerator
-        report_gen = ReportGenerator(output_dir=Path("reports"))
+        report_gen = ReportGenerator(output_dir=Path("output/reports"))
         
         # Initialize storage backend (in-memory for now)
         from shared_context.storage import InMemoryStorage

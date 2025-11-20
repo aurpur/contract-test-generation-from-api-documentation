@@ -89,7 +89,7 @@ class ContractorAgent(BaseAgent):
             templates_dir = str(Path(__file__).parent.parent / "code_generation" / "templates")
         
         self.templates_dir = templates_dir
-        self.output_dir = output_dir or "./generated_tests"
+        self.output_dir = output_dir or "./output/tests"
         self.base_package = base_package
         
         # Initialize Jinja2 environment
@@ -461,14 +461,11 @@ class ContractorAgent(BaseAgent):
         name = context.name.replace("-", " ").replace("_", " ")
         name = "".join(word.capitalize() for word in name.split())
         
-        # Add method prefix
-        method_prefix = context.method.value.capitalize()
-        
-        # Add Test suffix
-        class_name = f"{method_prefix}{name}Test"
-        
         # Remove invalid characters
-        class_name = re.sub(r'[^a-zA-Z0-9]', '', class_name)
+        name = re.sub(r'[^a-zA-Z0-9]', '', name)
+        
+        # Add Test suffix (no method prefix to avoid duplication)
+        class_name = f"{name}Test"
         
         return class_name
     
@@ -707,11 +704,15 @@ class ContractorAgent(BaseAgent):
             context: Endpoint context
             
         Returns:
-            Feature file name (e.g., "get-users.feature")
+            Feature file name using snake_case (e.g., "get_users.feature")
         """
-        method = context.method.value.lower()
-        name = context.name.lower().replace('_', '-')
-        return f"{method}-{name}.feature"
+        # Normalize name: replace spaces and dashes with underscores
+        name = context.name.lower().replace(' ', '_').replace('-', '_')
+        # Remove any duplicate underscores
+        name = re.sub(r'_+', '_', name)
+        # Remove invalid characters
+        name = re.sub(r'[^a-z0-9_]', '', name)
+        return f"{name}.feature"
     
     # Message handlers
     

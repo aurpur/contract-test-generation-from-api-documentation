@@ -212,6 +212,8 @@
 - [x] Génération `pom.xml` dynamique
 - [x] Tests unitaires (22 tests)
 - [x] Documentation
+- [x] **Structure de sortie organisée** (output/)
+- [x] **Conventions de nommage** (snake_case, PascalCase)
 
 **Résultats Phase 4.4:**
 - ✅ `src/agents/contractor.py` (662 lignes → 783 lignes) - ContractorAgent class

@@ -22,7 +22,7 @@ from shared_context.models import (
 class ReportGenerator:
     """Generate various reports for the workflow execution."""
     
-    def __init__(self, output_dir: Path = Path("reports")):
+    def __init__(self, output_dir: Path = Path("output/reports")):
         """
         Initialize report generator.
         
@@ -58,7 +58,9 @@ class ReportGenerator:
             Path to generated report
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_path = self.output_dir / f"agent_execution_report_{timestamp}.html"
+        html_dir = self.output_dir / "html"
+        html_dir.mkdir(parents=True, exist_ok=True)
+        report_path = html_dir / f"agent_execution_report_{timestamp}.html"
         
         # Generate task distribution graph
         graph_path = self._generate_agent_metrics_graph(metrics, timestamp)
@@ -233,7 +235,9 @@ class ReportGenerator:
             Path to generated report
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_path = self.output_dir / f"test_execution_report_{timestamp}.html"
+        html_dir = self.output_dir / "html"
+        html_dir.mkdir(parents=True, exist_ok=True)
+        report_path = html_dir / f"test_execution_report_{timestamp}.html"
         
         # Generate test results graph
         graph_path = self._generate_test_results_graph(results, timestamp)
@@ -421,7 +425,11 @@ class ReportGenerator:
             Path to oracle list file
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        list_path = self.output_dir / f"oracle_list_{timestamp}.txt"
+        
+        # Save to oracles directory
+        oracles_dir = self.output_dir.parent / "oracles"
+        oracles_dir.mkdir(parents=True, exist_ok=True)
+        list_path = oracles_dir / f"oracle_list_{timestamp}.txt"
         
         # Create endpoint map for names
         endpoint_map = {}
