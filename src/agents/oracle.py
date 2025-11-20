@@ -884,7 +884,7 @@ Generate the oracle now:
         """String representation."""
         return (
             f"OracleAgent(state={self.state.value}, "
-            f"active_tasks={len(self.active_tasks)}, "
+            f"active_tasks={len(self._active_tasks)}, "
             f"llm_clients={len(self.llm_clients)}, "
             f"consensus_threshold={self.consensus_threshold})"
         )

@@ -804,6 +804,6 @@ class ContractorAgent(BaseAgent):
         """String representation."""
         return (
             f"ContractorAgent(state={self.state.value}, "
-            f"active_tasks={len(self.active_tasks)}, "
+            f"active_tasks={len(self._active_tasks)}, "
             f"tests_generated={self._metrics['tests_generated']})"
         )

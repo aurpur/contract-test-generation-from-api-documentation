@@ -96,6 +96,7 @@ def sample_oracle():
     """Sample oracle."""
     return Oracle(
         id=uuid4(),
+        name="Get Users Oracle",
         endpoint_id=uuid4(),
         status_code=200,
         required_headers=["Content-Type"],
@@ -147,7 +148,7 @@ class TestContractorAgentInitialization:
         
         assert agent.agent_type == AgentType.CONTRACTOR
         assert agent.base_package == "generated"
-        assert agent.output_dir == "./generated_tests"
+        assert agent.output_dir == "./output/tests"
         assert agent.jinja_env is not None
         assert agent._metrics["tests_generated"] == 0
         assert agent.metrics["lines_of_code"] == 0
@@ -556,12 +557,13 @@ class TestCodeGeneration:
         
         oracle2 = Oracle(
             id=uuid4(),
+            name="Not Found Oracle",
             endpoint_id=sample_endpoint_context.id,
             status_code=404,
             required_headers=[],
             header_constraints={},
             response_schema={},
-            json_path_assertions=[],
+            json_path_assertions={},
             business_rules=[],
             confidence_score=0.8,
             quality_score=0.75,
@@ -569,15 +571,8 @@ class TestCodeGeneration:
         )
         
         # Mock context manager
-        async def get_oracle_mock(oracle_id):
-            if oracle_id == oracle1.id:
-                return oracle1
-            elif oracle_id == oracle2.id:
-                return oracle2
-            return None
-        
-        context_manager.get_oracle = AsyncMock(side_effect=get_oracle_mock)
-        context_manager.get_endpoint_context = AsyncMock(
+        context_manager.get_oracles = AsyncMock(return_value=[oracle1, oracle2])
+        context_manager.get_endpoint = AsyncMock(
             return_value=sample_endpoint_context
         )
         context_manager.store_generated_test = AsyncMock()
@@ -680,8 +675,14 @@ class TestMessageHandlers:
             task_queue=task_queue,
         )
         
+        session_id = uuid4()
+        message_id = uuid4()
+        
         message = MagicMock()
-        message.session_id = uuid4()
+        message.session_id = session_id
+        message.id = message_id
+        message.from_agent = "oracle"
+        message.to_agent = "contractor"
         message.payload = {"oracle_ids": [str(uuid4())]}
         
         await agent._handle_generate_tests_message(message)
@@ -739,7 +740,7 @@ class TestGherkinGeneration:
             task_queue=task_queue,
         )
         
-        result = agent._generate_test_from_oracle(
+        result = await agent._generate_test_from_oracle(
             sample_endpoint_context, sample_oracle
         )
         
@@ -786,7 +787,7 @@ class TestGherkinGeneration:
         assert file_name is not None
         assert file_name.endswith(".feature")
         assert "get" in file_name.lower()
-        assert "-" in file_name  # Should use kebab-case
+        assert "_" in file_name  # Should use snake_case
 
 
 class TestAgentRepr:

@@ -336,9 +336,11 @@ class InductorAgent(BaseAgent):
         body_schema = None
         if request.body:
             if request.body.json:
-                body = request.body.json
-                # Try to infer schema from JSON
+                # Parse JSON string to dict
                 try:
+                    import json
+                    body = json.loads(request.body.json) if isinstance(request.body.json, str) else request.body.json
+                    # Try to infer schema from parsed dict
                     body_schema = self._infer_schema_from_json(body)
                 except Exception:
                     pass

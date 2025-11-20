@@ -124,6 +124,7 @@ def sample_oracle():
     endpoint_id = uuid4()
     return Oracle(
         id=uuid4(),
+        name="Get User Oracle",
         endpoint_id=endpoint_id,
         status_code=200,
         required_headers=["Content-Type", "X-Request-ID"],
@@ -540,6 +541,7 @@ class TestOracleQuality:
         
         # Create incomplete oracle
         incomplete_oracle = Oracle(
+            name="Low Quality Oracle",
             endpoint_id=uuid4(),
             status_code=999,  # Invalid
             required_headers=[],
@@ -596,8 +598,14 @@ class TestMessageHandlers:
             task_queue=task_queue,
         )
         
+        session_id = uuid4()
+        message_id = uuid4()
+        
         message = MagicMock()
-        message.session_id = uuid4()
+        message.session_id = session_id
+        message.id = message_id
+        message.from_agent = "inductor"
+        message.to_agent = "oracle"
         message.payload = {"context_ids": [str(uuid4())]}
         
         await agent._handle_derive_oracles_message(message)

@@ -46,8 +46,11 @@ async def storage_backend():
     storage.save_message = AsyncMock()
     storage.get_messages = AsyncMock(return_value=[])
     storage.save_quality_metrics = AsyncMock()
+    storage.get_quality_metrics = AsyncMock(return_value=[])
     storage.save_llm_metrics = AsyncMock()
+    storage.save_llm_performance_metrics = AsyncMock()
     storage.get_llm_metrics = AsyncMock(return_value=[])
+    storage.get_llm_performance_metrics = AsyncMock(return_value=[])
     storage.save_endpoint_context = AsyncMock()
     storage.get_endpoint_context = AsyncMock()
     storage.save_oracle = AsyncMock()
@@ -56,7 +59,24 @@ async def storage_backend():
     storage.get_generated_test = AsyncMock()
     storage.save_execution_result = AsyncMock()
     storage.get_execution_result = AsyncMock()
+    storage.save_inconsistency_report = AsyncMock()
+    storage.get_inconsistency_reports = AsyncMock(return_value=[])
+    storage.save_completeness_analysis = AsyncMock()
+    storage.get_completeness_analysis = AsyncMock()
     storage.close = AsyncMock()
+    
+    def mock_get_cache_key(entity_type, entity_id):
+        return f"{entity_type}:{entity_id}"
+    
+    def mock_cache_get(key):
+        return storage._cache.get(key)
+    
+    def mock_cache_set(key, value):
+        storage._cache[key] = value
+    
+    storage._get_cache_key = Mock(side_effect=mock_get_cache_key)
+    storage._cache_get = Mock(side_effect=mock_cache_get)
+    storage._cache_set = Mock(side_effect=mock_cache_set)
     
     # Store data in memory for simple tests
     storage._sessions = {}
@@ -65,10 +85,17 @@ async def storage_backend():
     storage._oracles = {}
     storage._tests = {}
     storage._results = {}
+    storage._cache = {}
+    storage._quality_metrics = []
+    storage._completeness = []
+    storage._llm_perf = []
     
     # Implement basic CRUD logic
     async def mock_save_session(session):
         storage._sessions[session.id] = session
+        # Also cache the session
+        cache_key = storage._get_cache_key("session", session.id)
+        storage._cache[cache_key] = session.model_dump()
     
     async def mock_get_session(session_id):
         return storage._sessions.get(session_id)
@@ -76,10 +103,62 @@ async def storage_backend():
     async def mock_delete_session(session_id):
         if session_id in storage._sessions:
             del storage._sessions[session_id]
+        # Clear cache
+        cache_key = storage._get_cache_key("session", session_id)
+        if cache_key in storage._cache:
+            del storage._cache[cache_key]
+    
+    async def mock_save_message(message):
+        storage._messages.append(message)
+    
+    async def mock_get_messages(session_id, to_agent=None, from_agent=None):
+        messages = [msg for msg in storage._messages if msg.session_id == session_id]
+        if to_agent:
+            messages = [msg for msg in messages if msg.to_agent == to_agent]
+        if from_agent:
+            messages = [msg for msg in messages if msg.from_agent == from_agent]
+        return messages
+    
+    storage._reports = []
+    
+    async def mock_save_inconsistency_report(report):
+        storage._reports.append(report)
+    
+    async def mock_get_inconsistency_reports(session_id):
+        return [r for r in storage._reports if r.session_id == session_id]
+    
+    async def mock_save_quality_metrics(metrics):
+        storage._quality_metrics.append(metrics)
+    
+    async def mock_get_quality_metrics(session_id):
+        return [m for m in storage._quality_metrics if m.session_id == session_id]
+    
+    async def mock_save_completeness_analysis(analysis):
+        storage._completeness.append(analysis)
+    
+    async def mock_save_llm_performance_metrics(metrics):
+        storage._llm_perf.append(metrics)
+    
+    async def mock_get_llm_performance_metrics(session_id):
+        return [m for m in storage._llm_perf if m.session_id == session_id]
+    
+    async def mock_get_completeness_analysis(session_id):
+        results = [c for c in storage._completeness if c.session_id == session_id]
+        return results[0] if results else None
     
     storage.save_session.side_effect = mock_save_session
     storage.get_session.side_effect = mock_get_session
     storage.delete_session.side_effect = mock_delete_session
+    storage.save_message.side_effect = mock_save_message
+    storage.get_messages.side_effect = mock_get_messages
+    storage.save_inconsistency_report.side_effect = mock_save_inconsistency_report
+    storage.get_inconsistency_reports.side_effect = mock_get_inconsistency_reports
+    storage.save_quality_metrics.side_effect = mock_save_quality_metrics
+    storage.get_quality_metrics.side_effect = mock_get_quality_metrics
+    storage.save_completeness_analysis.side_effect = mock_save_completeness_analysis
+    storage.get_completeness_analysis.side_effect = mock_get_completeness_analysis
+    storage.save_llm_performance_metrics.side_effect = mock_save_llm_performance_metrics
+    storage.get_llm_performance_metrics.side_effect = mock_get_llm_performance_metrics
     
     yield storage
 
@@ -321,6 +400,7 @@ class TestContextManager:
         
         # Add oracle
         oracle = Oracle(
+            name="Get Users Management Oracle",
             endpoint_id=endpoint.id,
             status_code=200,
             required_headers=["Content-Type"],
@@ -362,7 +442,7 @@ class TestContextManager:
         )
         await context_manager.add_endpoint(session.id, endpoint)
         
-        oracle = Oracle(endpoint_id=endpoint.id, status_code=200)
+        oracle = Oracle(name="Get Users Oracle", endpoint_id=endpoint.id, status_code=200)
         await context_manager.add_oracle(session.id, oracle)
         
         # Add test
@@ -401,7 +481,7 @@ class TestContextManager:
         )
         await context_manager.add_endpoint(session.id, endpoint)
         
-        oracle = Oracle(endpoint_id=endpoint.id, status_code=200)
+        oracle = Oracle(name="Execution Test Oracle", endpoint_id=endpoint.id, status_code=200)
         await context_manager.add_oracle(session.id, oracle)
         
         test = GeneratedTest(
@@ -521,7 +601,7 @@ class TestContextManager:
         )
         await context_manager.add_endpoint(session.id, endpoint)
         
-        oracle = Oracle(endpoint_id=endpoint.id, status_code=200)
+        oracle = Oracle(name="Inconsistency Report Oracle", endpoint_id=endpoint.id, status_code=200)
         await context_manager.add_oracle(session.id, oracle)
         
         test = GeneratedTest(

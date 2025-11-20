@@ -405,11 +405,10 @@ class TestTaskProcessing:
         collection_data = {
             "name": "Test API",
             "version": "1.0.0",
-            "type": "collection",
             "items": [
                 {
                     "name": "Get User",
-                    "type": "http-request",
+                    "type": "http",
                     "request": {
                         "method": "GET",
                         "url": "https://api.example.com/users/1",
@@ -417,7 +416,12 @@ class TestTaskProcessing:
                         "params": [],
                     }
                 }
-            ]
+            ],
+            "brunoConfig": {
+                "version": "1",
+                "name": "Test API",
+                "type": "collection"
+            }
         }
         
         collection_file = tmp_path / "test_collection.json"
@@ -445,7 +449,7 @@ class TestTaskProcessing:
         assert result["contexts_stored"] == 1
         
         # Verify context was stored
-        context_manager.store_endpoint_context.assert_called()
+        context_manager.add_endpoint.assert_called()
     
     @pytest.mark.asyncio
     async def test_process_parse_collection_task(self, inductor_agent, tmp_path):
@@ -453,8 +457,12 @@ class TestTaskProcessing:
         collection_data = {
             "name": "Test API",
             "version": "1.0.0",
-            "type": "collection",
-            "items": []
+            "items": [],
+            "brunoConfig": {
+                "version": "1",
+                "name": "Test API",
+                "type": "collection"
+            }
         }
         
         collection_file = tmp_path / "test_collection.json"

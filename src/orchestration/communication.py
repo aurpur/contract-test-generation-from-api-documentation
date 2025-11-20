@@ -228,19 +228,27 @@ class MessageRouter:
                 f"Routing message {message.id} to handler for type: "
                 f"{message.message_type}"
             )
-            return await handler.handle_message(message)
+            # Support both callable functions and handler objects
+            if hasattr(handler, 'handle_message'):
+                return await handler.handle_message(message)
+            else:
+                return await handler(message)
         
         if self.default_handler:
             logger.debug(
                 f"Routing message {message.id} to default handler"
             )
-            return await self.default_handler.handle_message(message)
+            # Support both callable functions and handler objects
+            if hasattr(self.default_handler, 'handle_message'):
+                return await self.default_handler.handle_message(message)
+            else:
+                return await self.default_handler(message)
         
-        error_msg = (
+        # No handler found - log warning but don't raise
+        logger.warning(
             f"No handler found for message type: {message.message_type}"
         )
-        logger.error(error_msg)
-        raise ValueError(error_msg)
+        return {"status": "no_handler"}
     
     async def send(self, message: AgentMessage) -> None:
         """

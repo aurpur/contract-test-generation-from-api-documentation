@@ -580,8 +580,14 @@ class TestMessageHandlers:
                 project_dir=str(temp_project_dir),
             )
         
+        session_id = uuid4()
+        message_id = uuid4()
+        
         message = MagicMock()
-        message.session_id = uuid4()
+        message.session_id = session_id
+        message.id = message_id
+        message.from_agent = "contractor"
+        message.to_agent = "runner"
         message.payload = {"test_ids": [str(uuid4())]}
         
         await agent._handle_execute_tests_message(message)

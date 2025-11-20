@@ -469,7 +469,7 @@ class RunnerAgent(BaseAgent):
             return {"status": "error", "error": "No test_id provided"}
         
         # Retrieve test
-        session_id_uuid = session_id
+        session_id_uuid = task.session_id
         if isinstance(session_id_uuid, str):
             session_id_uuid = UUID(session_id_uuid)
         
@@ -815,7 +815,7 @@ class RunnerAgent(BaseAgent):
         
         if "assertion" in error or "expected" in error:
             return "assertion_failure"
-        elif "timeout" in error:
+        elif "timeout" in error or "timed out" in error:
             return "timeout"
         elif "connection" in error or "network" in error:
             return "network_error"
@@ -975,7 +975,7 @@ class RunnerAgent(BaseAgent):
         """String representation."""
         return (
             f"RunnerAgent(state={self.state.value}, "
-            f"active_tasks={len(self.active_tasks)}, "
+            f"active_tasks={len(self._active_tasks)}, "
             f"tests_run={self._metrics['tests_run']}, "
             f"tests_passed={self._metrics['tests_passed']}, "
             f"tests_failed={self._metrics['tests_failed']})"

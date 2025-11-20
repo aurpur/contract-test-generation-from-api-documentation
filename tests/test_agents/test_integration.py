@@ -17,6 +17,7 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from typing import Dict, Any, List
 
 import pytest
+import pytest_asyncio
 
 from agents.inductor import InductorAgent
 from agents.oracle import OracleAgent
@@ -122,7 +123,7 @@ def agent_configs():
     }
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def multi_agent_system(
     agent_configs, context_manager, message_router, event_bus, task_queue
 ):
@@ -131,7 +132,7 @@ async def multi_agent_system(
     inductor = InductorAgent(
         config=agent_configs["inductor"],
         context_manager=context_manager,
-        message_router=message_router,
+        router=message_router,
         event_bus=event_bus,
         task_queue=task_queue,
     )
@@ -161,12 +162,6 @@ async def multi_agent_system(
         project_dir="/tmp/test-project",
     )
     
-    # Initialize agents
-    await inductor.initialize()
-    await oracle.initialize()
-    await contractor.initialize()
-    await runner.initialize()
-    
     system = {
         "inductor": inductor,
         "oracle": oracle,
@@ -179,12 +174,6 @@ async def multi_agent_system(
     }
     
     yield system
-    
-    # Cleanup
-    await inductor.shutdown()
-    await oracle.shutdown()
-    await contractor.shutdown()
-    await runner.shutdown()
 
 
 # ============================================================================
@@ -261,7 +250,7 @@ class TestEndToEndWorkflow:
         # Step 1: Inductor extracts contexts
         task = Task(
             agent_type=AgentType.INDUCTOR,
-            task_type="extract_contexts",
+            task_type="extract_context",
             session_id=uuid4(),
             payload={"collection": sample_bruno_collection.dict()},
         )
@@ -319,7 +308,7 @@ class TestEndToEndWorkflow:
         # Step 1: Inductor extracts contexts
         inductor_task = Task(
             agent_type=AgentType.INDUCTOR,
-            task_type="extract_contexts",
+            task_type="extract_context",
             session_id=session_id,
             payload={"collection": sample_bruno_collection.dict()},
         )
@@ -437,7 +426,7 @@ class TestEndToEndWorkflow:
         # Extract all contexts
         task = Task(
             agent_type=AgentType.INDUCTOR,
-            task_type="extract_contexts",
+            task_type="extract_context",
             session_id=uuid4(),
             payload={"collection": collection.dict()},
         )
@@ -481,7 +470,7 @@ class TestFeedbackLoop:
             headers={"Content-Type": "application/json"},
             auth_type=AuthType.NONE,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         # Create mock oracle
         oracle = Oracle(
@@ -562,7 +551,7 @@ class TestFeedbackLoop:
             url="https://api.example.com/flaky",
             auth_type=AuthType.NONE,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         oracle = Oracle(
             endpoint_id=context.id,
@@ -631,7 +620,7 @@ class TestMultiLLMConsensus:
             url="https://api.example.com/users",
             auth_type=AuthType.NONE,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         # Mock multiple LLM responses (all agree)
         llm_responses = [
@@ -692,7 +681,7 @@ class TestMultiLLMConsensus:
             url="https://api.example.com/action",
             auth_type=AuthType.BEARER,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         # Mock LLM responses with disagreement
         llm_responses = [
@@ -760,7 +749,7 @@ class TestPerformanceBenchmarking:
         
         task = Task(
             agent_type=AgentType.INDUCTOR,
-            task_type="extract_contexts",
+            task_type="extract_context",
             session_id=uuid4(),
             payload={"collection": collection.dict()},
         )
@@ -803,7 +792,7 @@ class TestPerformanceBenchmarking:
         # Step 1: Extract context
         inductor_task = Task(
             agent_type=AgentType.INDUCTOR,
-            task_type="extract_contexts",
+            task_type="extract_context",
             session_id=session_id,
             payload={"collection": collection.dict()},
         )
@@ -873,7 +862,7 @@ class TestPerformanceBenchmarking:
             inductor.process_task(
                 Task(
                     agent_type=AgentType.INDUCTOR,
-                    task_type="extract_contexts",
+                    task_type="extract_context",
                     session_id=uuid4(),
                     payload={"collection": collection.dict()},
                 )
@@ -918,7 +907,7 @@ class TestRQValidation:
             description="Returns list of users",
             auth_type=AuthType.NONE,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         # Expected oracle (ground truth)
         expected_status = 200
@@ -966,7 +955,7 @@ class TestRQValidation:
             url="https://api.example.com/users",
             auth_type=AuthType.BEARER,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         oracle = Oracle(
             endpoint_id=context.id,
@@ -1014,7 +1003,7 @@ class TestRQValidation:
             url="https://api.example.com/users/{id}",
             auth_type=AuthType.NONE,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         oracle = Oracle(
             endpoint_id=context.id,
@@ -1056,7 +1045,7 @@ class TestRQValidation:
             url="https://api.example.com/test",
             auth_type=AuthType.NONE,
         )
-        await context_manager.store_endpoint_context(context)
+        await context_manager.add_endpoint(session_id=session_id, endpoint=context)
         
         # Simulate different LLM responses
         llm_results = {}
@@ -1133,7 +1122,7 @@ class TestRQValidation:
         complete_result = await inductor.process_task(
             Task(
                 agent_type=AgentType.INDUCTOR,
-                task_type="extract_contexts",
+                task_type="extract_context",
                 session_id=uuid4(),
                 payload={"collection": complete_collection.dict()},
             )
@@ -1142,7 +1131,7 @@ class TestRQValidation:
         incomplete_result = await inductor.process_task(
             Task(
                 agent_type=AgentType.INDUCTOR,
-                task_type="extract_contexts",
+                task_type="extract_context",
                 session_id=uuid4(),
                 payload={"collection": incomplete_collection.dict()},
             )
