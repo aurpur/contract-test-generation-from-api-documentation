@@ -9,6 +9,7 @@ Author: Aurel IKAMA HONEY
 """
 import asyncio
 import json
+import httpx
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
@@ -55,6 +56,8 @@ class OracleAgent(BaseAgent):
         task_queue,
         llm_configs: Optional[List[Dict[str, Any]]] = None,
         consensus_threshold: float = 0.7,
+        enable_api_calls: bool = True,
+        max_api_retries: int = 3,
     ):
         """
         Initialize Oracle Agent.
@@ -67,6 +70,8 @@ class OracleAgent(BaseAgent):
             task_queue: Task queue for processing
             llm_configs: List of LLM configurations for consensus
             consensus_threshold: Minimum agreement ratio (0.0-1.0)
+            enable_api_calls: Enable real API calls to collect data
+            max_api_retries: Maximum retries for API calls
         """
         super().__init__(
             config=config,
@@ -79,24 +84,52 @@ class OracleAgent(BaseAgent):
         # Initialize LLM clients for consensus
         self.llm_clients: List[BaseLLMClient] = []
         if llm_configs:
-            for llm_config in llm_configs:
+            logger.info(f"Initializing {len(llm_configs)} LLM clients for consensus")
+            for i, llm_config in enumerate(llm_configs):
                 try:
+                    logger.debug(f"Creating LLM client {i+1}: {llm_config}")
                     client = LLMClientFactory.create_client(llm_config)
                     self.llm_clients.append(client)
                     logger.info(
-                        f"Initialized LLM client: {llm_config.get('provider')} "
+                        f"✓ Initialized LLM client {i+1}/{len(llm_configs)}: {llm_config.get('provider')} "
                         f"({llm_config.get('model')})"
                     )
                 except Exception as e:
-                    logger.error(f"Failed to initialize LLM client: {e}")
+                    logger.error(f"✗ Failed to initialize LLM client {i+1}: {e}", exc_info=True)
+        else:
+            logger.warning("No LLM configs provided - oracle will use fallback mode")
         
         self.consensus_threshold = consensus_threshold
+        self.enable_api_calls = enable_api_calls
+        self.max_api_retries = max_api_retries
+        self._http_client: Optional[httpx.AsyncClient] = None
         
         # Metrics
         self.metrics["oracles_generated"] = 0
         self.metrics["consensus_votes"] = 0
         self.metrics["llm_calls"] = 0
         self.metrics["low_confidence_oracles"] = 0
+        self.metrics["api_calls_made"] = 0
+        self.metrics["api_calls_successful"] = 0
+        self.metrics["api_calls_failed"] = 0
+    
+    async def start(self) -> None:
+        """Start the Oracle agent with HTTP client initialization."""
+        await super().start()
+        if self.enable_api_calls:
+            self._http_client = httpx.AsyncClient(
+                timeout=30.0,
+                follow_redirects=True,
+            )
+            logger.info("HTTP client initialized for API calls")
+    
+    async def stop(self, timeout: float = 30.0) -> None:
+        """Stop the Oracle agent and cleanup HTTP client."""
+        if self._http_client:
+            await self._http_client.aclose()
+            self._http_client = None
+            logger.info("HTTP client closed")
+        await super().stop(timeout=timeout)
     
     def register_handlers(self) -> None:
         """Register message handlers for oracle derivation."""
@@ -296,12 +329,18 @@ class OracleAgent(BaseAgent):
         Returns:
             Oracle with consensus-based validations or None
         """
+        # First, try to collect real API data if enabled
+        real_api_data = None
+        if self.enable_api_calls:
+            real_api_data = await self._collect_real_api_data(context)
+        
         if not self.llm_clients:
             logger.warning("No LLM clients configured, using fallback oracle generation")
-            return self._generate_fallback_oracle(context)
+            return self._generate_fallback_oracle(context, real_api_data)
         
-        # Generate prompt
-        prompt = self._build_oracle_prompt(context)
+        # Generate prompt (enriched with real API data if available)
+        prompt = self._build_oracle_prompt(context, real_api_data)
+        logger.info(f"Generated prompt for {context.name}: {len(prompt)} characters")
         
         # Query all LLM models
         responses = await self._query_all_llms(prompt)
@@ -322,12 +361,214 @@ class OracleAgent(BaseAgent):
         
         if not oracle_proposals:
             logger.warning("No valid oracle proposals, using fallback")
-            return self._generate_fallback_oracle(context)
+            return self._generate_fallback_oracle(context, real_api_data)
         
         # Apply consensus mechanism
-        consensus_oracle = self._apply_consensus(oracle_proposals, context)
+        consensus_oracle = self._apply_consensus(oracle_proposals, context, real_api_data)
         
         return consensus_oracle
+    
+    async def _collect_real_api_data(
+        self, context: EndpointContext, num_samples: int = 3
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Collect real API data by making actual HTTP requests.
+        
+        Makes multiple calls to collect diverse samples and improve oracle precision.
+        
+        Args:
+            context: Endpoint context
+            num_samples: Number of API calls to make
+            
+        Returns:
+            Collected API data including responses, status codes, headers
+        """
+        if not self._http_client:
+            logger.warning("HTTP client not initialized")
+            return None
+        
+        logger.info(f"Collecting real API data for {context.name} ({num_samples} samples)")
+        
+        collected_data = {
+            "samples": [],
+            "status_codes": [],
+            "response_times": [],
+            "common_headers": {},
+            "response_schemas": [],
+        }
+        
+        for attempt in range(num_samples):
+            try:
+                # Make API call with retries
+                response_data = await self._make_api_call_with_retries(context)
+                
+                if response_data:
+                    collected_data["samples"].append(response_data)
+                    collected_data["status_codes"].append(response_data["status_code"])
+                    collected_data["response_times"].append(response_data["response_time"])
+                    
+                    # Collect headers
+                    for header, value in response_data["headers"].items():
+                        if header not in collected_data["common_headers"]:
+                            collected_data["common_headers"][header] = []
+                        collected_data["common_headers"][header].append(value)
+                    
+                    # Collect response schema
+                    if response_data.get("body"):
+                        schema = self._infer_schema_from_response(response_data["body"])
+                        if schema:
+                            collected_data["response_schemas"].append(schema)
+                    
+                    self.metrics["api_calls_successful"] += 1
+                else:
+                    self.metrics["api_calls_failed"] += 1
+                
+            except Exception as e:
+                logger.error(f"Error collecting API data (attempt {attempt + 1}): {e}")
+                self.metrics["api_calls_failed"] += 1
+        
+        # Analyze collected data
+        if collected_data["samples"]:
+            collected_data["most_common_status"] = max(
+                set(collected_data["status_codes"]),
+                key=collected_data["status_codes"].count
+            )
+            collected_data["avg_response_time"] = sum(collected_data["response_times"]) / len(collected_data["response_times"])
+            
+            # Find common header values
+            collected_data["consistent_headers"] = {}
+            for header, values in collected_data["common_headers"].items():
+                # If all values are the same, it's a consistent header
+                if len(set(values)) == 1:
+                    collected_data["consistent_headers"][header] = values[0]
+            
+            logger.info(
+                f"Collected {len(collected_data['samples'])} samples. "
+                f"Most common status: {collected_data['most_common_status']}"
+            )
+            
+            return collected_data
+        
+        return None
+    
+    async def _make_api_call_with_retries(
+        self, context: EndpointContext
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Make an API call with retries.
+        
+        Args:
+            context: Endpoint context
+            
+        Returns:
+            Response data or None
+        """
+        for retry in range(self.max_api_retries):
+            try:
+                self.metrics["api_calls_made"] += 1
+                
+                # Prepare request
+                method = context.method.value.upper()
+                url = context.url
+                headers = context.headers.copy() if context.headers else {}
+                
+                # Handle authentication
+                if context.auth_type.value == "bearer" and context.auth_details:
+                    token = context.auth_details.get("token", "")
+                    headers["Authorization"] = f"Bearer {token}"
+                elif context.auth_type.value == "basic" and context.auth_details:
+                    # httpx handles basic auth automatically
+                    pass
+                elif context.auth_type.value == "apikey" and context.auth_details:
+                    key_name = context.auth_details.get("key_name", "X-API-Key")
+                    key_value = context.auth_details.get("key_value", "")
+                    headers[key_name] = key_value
+                
+                # Prepare request body
+                json_body = context.body if context.body else None
+                
+                # Make request
+                start_time = asyncio.get_event_loop().time()
+                
+                response = await self._http_client.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    json=json_body,
+                    params=context.query_params if context.query_params else None,
+                )
+                
+                end_time = asyncio.get_event_loop().time()
+                response_time = (end_time - start_time) * 1000  # ms
+                
+                # Parse response
+                response_data = {
+                    "status_code": response.status_code,
+                    "headers": dict(response.headers),
+                    "response_time": response_time,
+                    "body": None,
+                }
+                
+                # Try to parse JSON body
+                try:
+                    if response.text:
+                        response_data["body"] = response.json()
+                except:
+                    response_data["body"] = response.text
+                
+                logger.debug(
+                    f"API call successful: {method} {url} -> {response.status_code} "
+                    f"({response_time:.2f}ms)"
+                )
+                
+                return response_data
+                
+            except httpx.TimeoutException:
+                logger.warning(f"API call timeout (retry {retry + 1}/{self.max_api_retries})")
+                if retry == self.max_api_retries - 1:
+                    return None
+            except httpx.RequestError as e:
+                logger.warning(f"API call failed: {e} (retry {retry + 1}/{self.max_api_retries})")
+                if retry == self.max_api_retries - 1:
+                    return None
+            except Exception as e:
+                logger.error(f"Unexpected error during API call: {e}")
+                return None
+        
+        return None
+    
+    def _infer_schema_from_response(self, response_body: Any) -> Optional[Dict[str, Any]]:
+        """
+        Infer JSON schema from response body.
+        
+        Args:
+            response_body: Response body (dict or list)
+            
+        Returns:
+            Inferred JSON schema
+        """
+        if isinstance(response_body, dict):
+            properties = {}
+            for key, value in response_body.items():
+                properties[key] = {
+                    "type": type(value).__name__
+                }
+                if isinstance(value, dict):
+                    properties[key]["properties"] = self._infer_schema_from_response(value)
+                elif isinstance(value, list) and value:
+                    properties[key]["items"] = self._infer_schema_from_response(value[0])
+            
+            return {
+                "type": "object",
+                "properties": properties
+            }
+        elif isinstance(response_body, list) and response_body:
+            return {
+                "type": "array",
+                "items": self._infer_schema_from_response(response_body[0])
+            }
+        
+        return None
     
     async def _query_all_llms(self, prompt: str) -> List[Tuple[str, str]]:
         """
@@ -339,6 +580,11 @@ class OracleAgent(BaseAgent):
         Returns:
             List of (response, model_name) tuples
         """
+        if not self.llm_clients:
+            logger.warning("No LLM clients available for querying")
+            return []
+        
+        logger.info(f"Querying {len(self.llm_clients)} LLM models in parallel")
         tasks = []
         for client in self.llm_clients:
             tasks.append(self._query_llm_with_timeout(client, prompt))
@@ -347,19 +593,23 @@ class OracleAgent(BaseAgent):
         
         responses = []
         for i, result in enumerate(results):
+            model_name = getattr(self.llm_clients[i], "model", f"llm_{i}")
             if isinstance(result, Exception):
-                logger.error(f"LLM query failed: {result}")
+                logger.error(f"LLM query failed for {model_name}: {result}", exc_info=True)
                 continue
             
             if result:
-                model_name = getattr(self.llm_clients[i], "model", f"llm_{i}")
                 responses.append((result, model_name))
                 self.metrics["llm_calls"] += 1
+                logger.info(f"✓ Received response from {model_name}")
+            else:
+                logger.warning(f"Empty response from {model_name}")
         
+        logger.info(f"Received {len(responses)}/{len(self.llm_clients)} successful LLM responses")
         return responses
     
     async def _query_llm_with_timeout(
-        self, client: BaseLLMClient, prompt: str, timeout: float = 30.0
+        self, client: BaseLLMClient, prompt: str, timeout: float = 120.0
     ) -> Optional[str]:
         """
         Query LLM with timeout protection.
@@ -367,32 +617,38 @@ class OracleAgent(BaseAgent):
         Args:
             client: LLM client
             prompt: Prompt to send
-            timeout: Timeout in seconds
+            timeout: Timeout in seconds (default: 120s for complex oracle generation)
             
         Returns:
             LLM response or None
         """
+        model_name = getattr(client, "model", "unknown")
         try:
             # Wrap synchronous generate call in asyncio executor
             loop = asyncio.get_event_loop()
+            logger.debug(f"Querying {model_name} with prompt length: {len(prompt)} chars")
             response = await asyncio.wait_for(
                 loop.run_in_executor(None, client.generate, prompt),
                 timeout=timeout
             )
+            logger.debug(f"Response from {model_name}: {len(response) if response else 0} chars")
             return response
         except asyncio.TimeoutError:
-            logger.warning(f"LLM query timeout after {timeout}s")
+            logger.warning(f"LLM query timeout for {model_name} after {timeout}s")
             return None
         except Exception as e:
-            logger.error(f"LLM query error: {e}")
+            logger.error(f"LLM query error for {model_name}: {e}", exc_info=True)
             return None
     
-    def _build_oracle_prompt(self, context: EndpointContext) -> str:
+    def _build_oracle_prompt(
+        self, context: EndpointContext, real_api_data: Optional[Dict[str, Any]] = None
+    ) -> str:
         """
         Build prompt for oracle generation.
         
         Args:
             context: Endpoint context
+            real_api_data: Real API data collected from actual calls
             
         Returns:
             Formatted prompt string
@@ -429,6 +685,24 @@ class OracleAgent(BaseAgent):
         
         if context.expected_response_schema:
             prompt += f"- Response Schema: {json.dumps(context.expected_response_schema, indent=2)}\n"
+        
+        # Add real API data if available
+        if real_api_data:
+            prompt += f"\n**Real API Data Collected:**\n"
+            prompt += f"- Samples Collected: {len(real_api_data['samples'])}\n"
+            prompt += f"- Most Common Status Code: {real_api_data['most_common_status']}\n"
+            prompt += f"- Average Response Time: {real_api_data['avg_response_time']:.2f}ms\n"
+            
+            if real_api_data['consistent_headers']:
+                prompt += f"- Consistent Headers:\n"
+                for header, value in real_api_data['consistent_headers'].items():
+                    prompt += f"  * {header}: {value}\n"
+            
+            if real_api_data['response_schemas']:
+                prompt += f"- Observed Response Schema:\n"
+                prompt += f"  {json.dumps(real_api_data['response_schemas'][0], indent=2)}\n"
+            
+            prompt += "\nUSE THIS REAL API DATA TO IMPROVE ORACLE ACCURACY!\n"
         
         prompt += """
 **Task:**
@@ -514,7 +788,8 @@ Generate the oracle now:
             return None
     
     def _apply_consensus(
-        self, oracle_proposals: List[Tuple[Dict[str, Any], str]], context: EndpointContext
+        self, oracle_proposals: List[Tuple[Dict[str, Any], str]], context: EndpointContext,
+        real_api_data: Optional[Dict[str, Any]] = None
     ) -> Oracle:
         """
         Apply consensus mechanism to oracle proposals.
@@ -524,6 +799,7 @@ Generate the oracle now:
         Args:
             oracle_proposals: List of (oracle_data, model_name) tuples
             context: Endpoint context
+            real_api_data: Real API data to enhance oracle
             
         Returns:
             Consensus oracle
@@ -531,9 +807,15 @@ Generate the oracle now:
         num_models = len(oracle_proposals)
         self.metrics["consensus_votes"] += 1
         
-        # Vote on status code
+        # Vote on status code (prefer real API data if available)
         status_codes = [p[0].get("status_code") for p in oracle_proposals if p[0].get("status_code")]
-        consensus_status_code = self._vote_on_value(status_codes, num_models)
+        
+        # Use real API data to override if highly consistent
+        if real_api_data and "most_common_status" in real_api_data:
+            consensus_status_code = real_api_data["most_common_status"]
+            logger.info(f"Using real API status code: {consensus_status_code}")
+        else:
+            consensus_status_code = self._vote_on_value(status_codes, num_models)
         
         # Vote on required headers
         all_headers = []
@@ -542,8 +824,16 @@ Generate the oracle now:
             all_headers.extend(headers)
         consensus_headers = self._vote_on_list(all_headers, num_models)
         
-        # Merge header constraints
+        # Merge header constraints (prefer real API data)
         header_constraints = {}
+        
+        # Start with real API data if available
+        if real_api_data and real_api_data.get("consistent_headers"):
+            for header, value in real_api_data["consistent_headers"].items():
+                header_constraints[header] = [value]
+            logger.info(f"Using {len(header_constraints)} headers from real API data")
+        
+        # Add LLM proposals
         for proposal, _ in oracle_proposals:
             constraints = proposal.get("header_constraints", {})
             for key, value in constraints.items():
@@ -558,11 +848,17 @@ Generate the oracle now:
             if consensus_value:
                 consensus_header_constraints[key] = consensus_value
         
-        # Merge response schemas (take most complete)
+        # Merge response schemas (prefer real API data)
         response_schemas = [
             p[0].get("response_schema") for p in oracle_proposals
             if p[0].get("response_schema")
         ]
+        
+        # Add real API schemas if available
+        if real_api_data and real_api_data.get("response_schemas"):
+            response_schemas.extend(real_api_data["response_schemas"])
+            logger.info("Added real API response schemas to consensus")
+        
         consensus_schema = self._select_most_complete_schema(response_schemas)
         
         # Merge JSONPath assertions
@@ -746,40 +1042,70 @@ Generate the oracle now:
         
         return 0.5  # Default moderate confidence
     
-    def _generate_fallback_oracle(self, context: EndpointContext) -> Oracle:
+    def _generate_fallback_oracle(
+        self, context: EndpointContext, real_api_data: Optional[Dict[str, Any]] = None
+    ) -> Oracle:
         """
         Generate basic oracle without LLM (fallback).
         
         Args:
             context: Endpoint context
+            real_api_data: Real API data to enhance fallback
             
         Returns:
-            Basic oracle derived from context
+            Basic oracle derived from context and real data
         """
         logger.info(f"Generating fallback oracle for {context.name}")
         
-        # Extract basic validations from context
-        status_code = context.expected_status or 200
+        # Extract basic validations from context or real API data
+        if real_api_data and "most_common_status" in real_api_data:
+            status_code = real_api_data["most_common_status"]
+            logger.info(f"Using status code from real API: {status_code}")
+        else:
+            status_code = context.expected_status or 200
         
         required_headers = []
-        if context.expected_headers:
+        header_constraints = {}
+        
+        if real_api_data and real_api_data.get("consistent_headers"):
+            required_headers = list(real_api_data["consistent_headers"].keys())
+            header_constraints = real_api_data["consistent_headers"].copy()
+            logger.info(f"Using {len(required_headers)} headers from real API")
+        elif context.expected_headers:
             required_headers = list(context.expected_headers.keys())
+            header_constraints = context.expected_headers.copy()
+        
+        # Use real API schema if available
+        response_schema = None
+        if real_api_data and real_api_data.get("response_schemas"):
+            response_schema = real_api_data["response_schemas"][0]
+            logger.info("Using response schema from real API")
+        else:
+            response_schema = context.expected_response_schema
         
         # Generate oracle name from endpoint name
-        oracle_name = f"{context.name} Oracle (Fallback)" if context.name else f"Endpoint {context.id} Oracle (Fallback)"
+        suffix = " (Fallback)"
+        if real_api_data:
+            suffix = " (Fallback + Real API Data)"
+        oracle_name = f"{context.name} Oracle{suffix}" if context.name else f"Endpoint {context.id} Oracle{suffix}"
+        
+        # Adjust confidence based on real API data
+        confidence_score = 0.5  # Base fallback confidence
+        if real_api_data and len(real_api_data.get("samples", [])) > 0:
+            confidence_score = 0.7  # Higher confidence with real data
         
         oracle = Oracle(
             name=oracle_name,
             endpoint_id=context.id,
             status_code=status_code,
             required_headers=required_headers,
-            header_constraints=context.expected_headers.copy() if context.expected_headers else {},
-            response_schema=context.expected_response_schema,
+            header_constraints=header_constraints,
+            response_schema=response_schema,
             json_path_assertions={},
             value_constraints={},
             business_rules=[],
-            confidence_score=0.5,  # Low confidence for fallback
-            rationale="Generated without LLM (fallback)",
+            confidence_score=confidence_score,
+            rationale=f"Generated without LLM (fallback){' with real API data' if real_api_data else ''}",
             llm_model="fallback",
             generated_at=datetime.utcnow(),
         )

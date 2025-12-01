@@ -24,13 +24,16 @@ contract-test-generation-from-api-documentation/
 │   │   ├── bruno_models.py         # Modèles Pydantic pour Bruno
 │   │   └── schema_validator.py     # Validation des schémas
 │   │
-│   ├── agents/                     # Les 4 agents spécialisés
+│   ├── agents/                     # Les 6 agents spécialisés
 │   │   ├── __init__.py
 │   │   ├── base_agent.py           # Classe abstraite agent
+│   │   ├── factory.py              # Factory pattern pour création agents
 │   │   ├── inductor.py             # Agent 1: Induction contexte
-│   │   ├── oracle.py               # Agent 2: Dérivation oracles
-│   │   ├── contractor.py           # Agent 3: Matérialisation contrats
-│   │   └── runner.py               # Agent 4: Exécution & feedback
+│   │   ├── oracle.py               # Agent 2: Dérivation oracles (+ appels API réels)
+│   │   ├── validation_agent.py     # Agent 3: Validation des oracles
+│   │   ├── contractor.py           # Agent 4: Matérialisation contrats
+│   │   ├── code_quality_agent.py   # Agent 5: Validation qualité code
+│   │   └── runner.py               # Agent 6: Exécution & feedback
 │   │
 │   ├── orchestration/              # Orchestration multi-agent
 │   │   ├── __init__.py
@@ -71,6 +74,9 @@ contract-test-generation-from-api-documentation/
 │       ├── __init__.py
 │       ├── logging.py              # Configuration logging
 │       ├── llm_client.py           # Client LLM unifié
+│       ├── java_code_analyzer.py   # Analyseur de code Java (smells/antipatterns)
+│       ├── config.py               # Gestion de configuration
+│       ├── report_generator.py     # Génération de rapports
 │       └── helpers.py              # Fonctions utilitaires
 │
 ├── generated_tests/                # Tests Java générés
@@ -130,10 +136,12 @@ contract-test-generation-from-api-documentation/
 Module responsable du parsing des collections Bruno et de la validation des schémas JSON/API.
 
 ### Agents
-Les quatre agents spécialisés de l'architecture multi-agent :
+Les six agents spécialisés de l'architecture multi-agent (Phase 5.0) :
 - **Inductor** : Analyse la documentation et extrait le contexte
-- **Oracle** : Dérive les règles de validation
-- **Contractor** : Génère les scripts de test Rest-Assured
+- **Oracle** : Dérive les règles de validation + appels API réels pour amélioration itérative
+- **ValidationAgent** : Valide la qualité et cohérence des oracles générés
+- **Contractor** : Génère les scripts de test Rest-Assured + Gherkin
+- **CodeQualityAgent** : Valide la qualité du code généré et mesure l'écart oracle-code
 - **Runner** : Exécute les tests et collecte les métriques
 
 ### Orchestration

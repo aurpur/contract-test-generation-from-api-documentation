@@ -256,6 +256,27 @@ class ContextManager:
         
         return oracles
     
+    async def get_oracle_by_id(
+        self,
+        session_id: UUID,
+        oracle_id: UUID,
+    ) -> Optional[Oracle]:
+        """
+        Get a specific oracle by ID.
+        
+        Args:
+            session_id: Session UUID
+            oracle_id: Oracle UUID
+            
+        Returns:
+            Oracle if found, None otherwise
+        """
+        oracles = await self.get_oracles(session_id)
+        for oracle in oracles:
+            if oracle.id == oracle_id:
+                return oracle
+        return None
+    
     # ==================== Test Management ====================
     
     async def add_test(
@@ -278,6 +299,32 @@ class ContextManager:
         
         await self.update_session(session)
         logger.debug(f"Added test '{test.test_method_name}' to session {session_id}")
+    
+    async def update_test(
+        self,
+        test: GeneratedTest,
+        session_id: UUID,
+    ) -> None:
+        """
+        Update an existing test in a session.
+        
+        Args:
+            test: Generated test with updated content
+            session_id: Session UUID containing the test
+        """
+        session = await self.get_session(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        
+        # Find and update the test
+        for i, existing_test in enumerate(session.tests):
+            if existing_test.id == test.id:
+                session.tests[i] = test
+                await self.update_session(session)
+                logger.debug(f"Updated test '{test.test_method_name}' in session {session_id}")
+                return
+        
+        logger.warning(f"Test {test.id} not found in session {session_id}")
     
     async def get_tests(
         self,
@@ -304,6 +351,27 @@ class ContextManager:
             tests = [t for t in tests if t.endpoint_id == endpoint_id]
         
         return tests
+    
+    async def get_test_by_id(
+        self,
+        session_id: UUID,
+        test_id: UUID,
+    ) -> Optional[GeneratedTest]:
+        """
+        Get a specific test by ID.
+        
+        Args:
+            session_id: Session UUID
+            test_id: Test UUID
+            
+        Returns:
+            GeneratedTest if found, None otherwise
+        """
+        tests = await self.get_tests(session_id)
+        for test in tests:
+            if test.id == test_id:
+                return test
+        return None
     
     async def get_generated_tests(
         self,

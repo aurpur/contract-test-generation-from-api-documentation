@@ -104,6 +104,35 @@ class ContractorAgent(BaseAgent):
         self._metrics["lines_of_code"] = 0
         self._metrics["assertions_count"] = 0
         self._metrics["pom_generated"] = 0
+        self._metrics["tests_regenerated"] = 0
+    
+    async def _subscribe_to_events(self) -> None:
+        """Subscribe to regeneration events."""
+        await self.subscribe_to_event("contractor.regenerate_test", self._handle_regenerate_test_event)
+        logger.info("✅ Contractor subscribed to regeneration events")
+    
+    async def _handle_regenerate_test_event(self, event_data: Dict[str, Any]) -> None:
+        """
+        Handle test regeneration event from Runner.
+        
+        Args:
+            event_data: Event data with test_id, failure_reason, retry_count, session_id
+        """
+        logger.info(f"📨 Received regeneration event: {event_data.get('test_id')}")
+        
+        # Create task for regeneration
+        task = Task(
+            task_type="regenerate_test",
+            agent_type=AgentType.CONTRACTOR,
+            payload=event_data
+        )
+        
+        # Process the regeneration task
+        try:
+            result = await self._regenerate_failed_test(task)
+            logger.info(f"✅ Regeneration completed: {result}")
+        except Exception as e:
+            logger.error(f"❌ Regeneration failed: {e}")
     
     def register_handlers(self) -> None:
         """Register message handlers for code generation."""
@@ -244,32 +273,76 @@ class ContractorAgent(BaseAgent):
     
     async def _regenerate_failed_test(self, task: Task) -> Dict[str, Any]:
         """
-        Regenerate a failed test with fixes.
+        Regenerate a failed test with fixes and execute it through Runner + TestFixer.
         
         Args:
-            task: Task with test_id, failure_reason, and retry_count in payload
+            task: Task with test_id, failure_reason, retry_count and session_id in payload
             
         Returns:
-            Result with regenerated test information
+            Result with regenerated test information and execution status
         """
         test_id = task.payload.get("test_id")
         failure_reason = task.payload.get("failure_reason", "Unknown error")
         retry_count = task.payload.get("retry_count", 1)
+        session_id = task.payload.get("session_id")
         
-        logger.info(f"Regenerating test {test_id} (retry {retry_count}): {failure_reason}")
+        logger.info(f"🔄 Regenerating test {test_id} (retry {retry_count}): {failure_reason}")
         
-        # For now, log the regeneration request
-        # In future, this would:
-        # 1. Retrieve the original oracle
-        # 2. Analyze the failure reason
-        # 3. Generate improved test code
-        # 4. Update the test in ContextManager
+        # Convert session_id to UUID if string
+        session_id_uuid = UUID(session_id) if isinstance(session_id, str) else session_id
+        
+        # 1. Retrieve the original test and its oracle
+        test = await self.context_manager.get_test(test_id=UUID(test_id) if isinstance(test_id, str) else test_id)
+        if not test:
+            logger.error(f"❌ Test {test_id} not found for regeneration")
+            return {"status": "error", "error": f"Test not found: {test_id}"}
+        
+        oracle = await self.context_manager.get_oracle(oracle_id=test.oracle_id)
+        if not oracle:
+            logger.error(f"❌ Oracle {test.oracle_id} not found for test {test_id}")
+            return {"status": "error", "error": f"Oracle not found: {test.oracle_id}"}
+        
+        # 2. Retrieve endpoint context
+        context = await self.context_manager.get_endpoint_context(context_id=oracle.endpoint_id)
+        if not context:
+            logger.error(f"❌ Context not found for oracle {oracle.id}")
+            return {"status": "error", "error": "Context not found for oracle"}
+        
+        # 3. Regenerate test with failure reason in mind
+        logger.info(f"♻️ Generating improved test code considering failure: {failure_reason}")
+        regenerated_test = await self._generate_test_from_oracle(context, oracle)
+        
+        if not regenerated_test:
+            logger.error(f"❌ Failed to regenerate test {test_id}")
+            return {"status": "error", "error": "Failed to regenerate test"}
+        
+        # 4. Update the test in ContextManager with new code
+        regenerated_test.id = test.id  # Keep the same ID
+        regenerated_test.oracle_id = test.oracle_id
+        await self.context_manager.update_test(regenerated_test, session_id_uuid)
+        
+        logger.info(f"✅ Test {test_id} regenerated successfully")
+        
+        # 5. Execute the regenerated test through Runner
+        logger.info(f"▶️ Executing regenerated test {test_id}")
+        runner_result = await self.event_bus.publish(
+            "runner.execute_tests",
+            {
+                "test_ids": [str(test_id)],
+                "session_id": str(session_id_uuid)
+            }
+        )
+        
+        # 6. Update metrics
+        self._metrics["tests_regenerated"] = self._metrics.get("tests_regenerated", 0) + 1
         
         return {
-            "status": "regeneration_requested",
-            "test_id": test_id,
+            "status": "success",
+            "test_id": str(test_id),
             "retry_count": retry_count,
-            "message": f"Test regeneration logged (not yet implemented)"
+            "regenerated": True,
+            "executed": True,
+            "runner_result": runner_result
         }
     
     async def _generate_single_test(self, task: Task) -> Dict[str, Any]:

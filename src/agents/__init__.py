@@ -17,6 +17,8 @@ from .inductor import InductorAgent
 from .oracle import OracleAgent
 from .contractor import ContractorAgent
 from .runner import RunnerAgent
+from .validation_agent import ValidationAgent
+from .code_quality_agent import CodeQualityAgent
 
 __all__ = [
     "BaseAgent",
@@ -29,4 +31,6 @@ __all__ = [
     "OracleAgent",
     "ContractorAgent",
     "RunnerAgent",
+    "ValidationAgent",
+    "CodeQualityAgent",
 ]

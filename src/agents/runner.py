@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from agents.base_agent import BaseAgent, AgentConfig
+from agents.test_fixer import TestFixer
 from shared_context import (
     ContextManager,
     GeneratedTest,
@@ -321,12 +322,32 @@ class RunnerAgent(BaseAgent):
         self.max_retries = max_retries
         self.timeout = timeout
         
+        # Initialize test fixer sub-agent with LLM support
+        from utils.llm_client import OllamaClient
+        from utils.config import get_config
+        
+        config_data = get_config()
+        test_fixer_config = config_data.agents.get('test_fixer', None)
+        test_fixer_model = test_fixer_config.model if test_fixer_config and hasattr(test_fixer_config, 'model') else 'llama3.2'
+        max_iterations = test_fixer_config.max_iterations if test_fixer_config and hasattr(test_fixer_config, 'max_iterations') else 3
+        max_fixes_per_category = test_fixer_config.max_fixes_per_category if test_fixer_config and hasattr(test_fixer_config, 'max_fixes_per_category') else 2
+        
+        llm_client = OllamaClient(model=test_fixer_model)
+        self.test_fixer = TestFixer(
+            llm_client=llm_client,
+            model_name=test_fixer_model,
+            max_iterations=max_iterations,
+            max_fixes_per_category=max_fixes_per_category
+        )
+        logger.info(f"🔧 Test fixer sub-agent initialized (model: {test_fixer_model}, max iterations: {max_iterations}, max fixes per category: {max_fixes_per_category})")
+        
         # Metrics
         self._metrics["tests_run"] = 0
         self._metrics["tests_passed"] = 0
         self._metrics["tests_failed"] = 0
         self._metrics["execution_time_ms"] = 0
         self._metrics["retries"] = 0
+        self._metrics["tests_auto_fixed"] = 0
     
     def register_handlers(self) -> None:
         """Register message handlers for test execution."""
@@ -400,6 +421,13 @@ class RunnerAgent(BaseAgent):
         # Write tests to disk
         await self._write_tests_to_disk(tests)
         
+        # First, try to compile the project to detect errors in generated code
+        logger.info("🔨 Compiling project to detect errors in generated code...")
+        compile_success = await self._compile_and_fix_generated_code(session_id_uuid)
+        
+        if not compile_success:
+            logger.warning("⚠️ Compilation still has errors after auto-fix attempts")
+        
         # Execute Maven tests
         test_classes = [test.test_class_name for test in tests]
         success, output, metrics = await self.maven_runner.run_tests(
@@ -427,7 +455,15 @@ class RunnerAgent(BaseAgent):
         # Analyze failures
         failed_tests = [r for r in execution_results if not r.passed]
         
-        # Trigger regeneration for failed tests (feedback loop)
+        # Try to auto-fix failed tests before triggering regeneration
+        if failed_tests and session_id:
+            execution_results, failed_tests = await self._try_auto_fix_tests(
+                failed_tests, 
+                execution_results, 
+                session_id_uuid
+            )
+        
+        # Trigger regeneration for tests that couldn't be auto-fixed
         if failed_tests and session_id:
             await self._trigger_regeneration(failed_tests, session_id)
         
@@ -452,6 +488,248 @@ class RunnerAgent(BaseAgent):
             "execution_time_ms": metrics.get("execution_time_ms", 0),
             "maven_success": success,
         }
+    
+    async def _compile_and_fix_generated_code(self, session_id: UUID) -> bool:
+        """
+        Compile project and fix any errors in generated code (not tests).
+        
+        This method:
+        1. Runs 'mvn compile' to compile only the generated code
+        2. Detects compilation errors
+        3. Uses TestFixer to fix errors in generated code
+        4. Retries compilation after fixes
+        
+        Args:
+            session_id: Session ID
+            
+        Returns:
+            True if compilation succeeds (after fixes), False otherwise
+        """
+        logger.info("🔨 Attempting to compile generated code...")
+        
+        max_compile_attempts = 3
+        for attempt in range(1, max_compile_attempts + 1):
+            logger.info(f"📝 Compilation attempt {attempt}/{max_compile_attempts}")
+            
+            # Run Maven compile (not test-compile, just compile)
+            cmd = [self.maven_runner.mvn_cmd, "compile", "-f", str(self.maven_runner.project_dir / "pom.xml")]
+            
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=str(self.maven_runner.project_dir)
+                )
+                
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(), 
+                    timeout=120.0
+                )
+                
+                output = stdout.decode() + stderr.decode()
+                
+                if process.returncode == 0:
+                    logger.info("✅ Compilation successful!")
+                    return True
+                else:
+                    logger.warning(f"❌ Compilation failed (exit code: {process.returncode})")
+                    
+                    # Try to fix generated code errors
+                    if attempt < max_compile_attempts:
+                        fixed = await self._fix_compilation_errors_in_generated_code(output, session_id)
+                        if not fixed:
+                            logger.warning("⚠️ Could not fix compilation errors")
+                            break
+                    else:
+                        logger.error("🔴 Max compilation attempts reached")
+                        return False
+                        
+            except asyncio.TimeoutError:
+                logger.error("⏱️ Compilation timeout after 120s")
+                return False
+            except Exception as e:
+                logger.error(f"❌ Compilation error: {e}")
+                return False
+        
+        return False
+    
+    async def _fix_compilation_errors_in_generated_code(self, maven_output: str, session_id: UUID) -> bool:
+        """
+        Parse Maven compilation output and fix errors in generated code using TestFixer.
+        
+        Args:
+            maven_output: Maven compilation output
+            session_id: Session ID
+            
+        Returns:
+            True if any fixes were applied, False otherwise
+        """
+        logger.info("🔧 Analyzing compilation errors in generated code...")
+        
+        # Parse compilation errors from Maven output
+        # Pattern: [ERROR] /path/to/file.java:[line,col] error message
+        error_pattern = r'\[ERROR\] (.+\.java):\[(\d+),(\d+)\] (.+)'
+        errors = re.findall(error_pattern, maven_output)
+        
+        if not errors:
+            logger.warning("No compilation errors found in Maven output")
+            return False
+        
+        logger.info(f"Found {len(errors)} compilation errors in generated code")
+        
+        fixed_any = False
+        fixed_files = set()
+        
+        for file_path, line, col, error_msg in errors:
+            if file_path in fixed_files:
+                continue  # Already processed this file
+            
+            file_path_obj = Path(file_path)
+            if not file_path_obj.exists():
+                logger.warning(f"File not found: {file_path}")
+                continue
+            
+            # Read the file
+            try:
+                with open(file_path_obj, 'r') as f:
+                    original_code = f.read()
+                
+                logger.info(f"🔧 Attempting to fix: {file_path_obj.name}")
+                
+                # Use TestFixer to fix generated code
+                full_error_message = f"[Line {line}, Col {col}] {error_msg}\n\nFull Maven output:\n{maven_output[:1000]}"
+                
+                fixed_code = await self.test_fixer.analyze_and_fix_generated_code(
+                    code=original_code,
+                    error_message=full_error_message,
+                    file_name=file_path_obj.name,
+                    file_type="Java"
+                )
+                
+                if fixed_code and fixed_code != original_code:
+                    # Write fixed code back to file
+                    with open(file_path_obj, 'w') as f:
+                        f.write(fixed_code)
+                    
+                    logger.info(f"✅ Fixed generated code: {file_path_obj.name}")
+                    fixed_files.add(file_path)
+                    fixed_any = True
+                else:
+                    logger.warning(f"❌ Could not fix: {file_path_obj.name}")
+                    
+            except Exception as e:
+                logger.error(f"Error fixing {file_path}: {e}")
+                continue
+        
+        if fixed_any:
+            logger.info(f"✅ Fixed {len(fixed_files)} generated code files")
+        else:
+            logger.warning("❌ No generated code files were fixed")
+        
+        return fixed_any
+    
+    async def _try_auto_fix_tests(
+        self, 
+        failed_tests: List[TestExecutionResult], 
+        all_results: List[TestExecutionResult],
+        session_id: UUID
+    ) -> Tuple[List[TestExecutionResult], List[TestExecutionResult]]:
+        """
+        Try to automatically fix failed tests using TestFixer.
+        
+        Args:
+            failed_tests: List of failed test results
+            all_results: List of all execution results
+            session_id: Session ID
+            
+        Returns:
+            Tuple of (updated_all_results, remaining_failed_tests)
+        """
+        logger.info(f"Attempting auto-fix for {len(failed_tests)} failed tests")
+        
+        fixed_count = 0
+        remaining_failed = []
+        updated_results = all_results.copy()
+        
+        for failed_result in failed_tests:
+            try:
+                # Get test from context
+                all_tests = await self.context_manager.get_tests(session_id=session_id)
+                test = next((t for t in all_tests if t.id == failed_result.test_id), None)
+                
+                if not test:
+                    logger.warning(f"Test not found for result {failed_result.test_id}")
+                    remaining_failed.append(failed_result)
+                    continue
+                
+                # Analyze and fix the test
+                logger.info(f"Attempting to fix test: {test.test_class_name}")
+                fixed_code = await self.test_fixer.analyze_and_fix_test(
+                    test_code=test.test_code,
+                    error_message=failed_result.error_message or "",
+                    test_name=test.test_class_name
+                )
+                
+                # If code was modified, update test and re-execute
+                if fixed_code and fixed_code != test.test_code:
+                    logger.info(f"Test fixed, re-executing: {test.test_class_name}")
+                    
+                    # Update test code
+                    test.test_code = fixed_code
+                    await self.context_manager.update_test(test, session_id)
+                    
+                    # Write fixed test to disk
+                    await self._write_tests_to_disk([test])
+                    
+                    # Re-execute the fixed test
+                    success, output, metrics = await self.maven_runner.run_tests(
+                        test_classes=[test.test_class_name],
+                        timeout=self.timeout,
+                    )
+                    
+                    # Parse JUnit XML for new results
+                    junit_results = self.maven_runner.parse_junit_xml()
+                    
+                    # Create new execution result
+                    new_result = await self._create_execution_result(test, junit_results, output)
+                    
+                    if new_result:
+                        # Update metrics
+                        if new_result.passed:
+                            fixed_count += 1
+                            self._metrics["tests_auto_fixed"] += 1
+                            logger.info(f"✓ Test auto-fixed successfully: {test.test_class_name}")
+                        else:
+                            remaining_failed.append(new_result)
+                            logger.warning(f"✗ Test still failing after fix: {test.test_class_name}")
+                        
+                        # Replace old result with new one
+                        updated_results = [
+                            new_result if r.test_id == failed_result.test_id else r 
+                            for r in updated_results
+                        ]
+                        
+                        # Store new result
+                        await self.context_manager.add_execution_result(session_id, new_result)
+                    else:
+                        remaining_failed.append(failed_result)
+                else:
+                    # No fix applied, keep as failed
+                    remaining_failed.append(failed_result)
+                    logger.info(f"No fix could be applied for: {test.test_class_name}")
+                    
+            except Exception as e:
+                logger.error(f"Error during auto-fix: {e}")
+                remaining_failed.append(failed_result)
+        
+        # Log statistics
+        if fixed_count > 0:
+            stats = self.test_fixer.get_statistics()
+            logger.info(f"Auto-fix summary: {fixed_count}/{len(failed_tests)} tests fixed")
+            logger.info(f"TestFixer stats: {stats}")
+        
+        return updated_results, remaining_failed
     
     async def _execute_single_test(self, task: Task) -> Dict[str, Any]:
         """
@@ -874,49 +1152,44 @@ class RunnerAgent(BaseAgent):
     ) -> None:
         """
         Trigger test regeneration for failed tests (feedback loop).
+        Regenerated tests will be automatically executed through Runner + TestFixer.
         
         Args:
             failed_results: List of failed test results
             session_id: Workflow session ID
         """
-        logger.info(f"Triggering regeneration for {len(failed_results)} failed tests")
+        logger.info(f"🔄 Triggering regeneration for {len(failed_results)} failed tests")
         
-        # Build regeneration requests as tasks, not messages
-        # Tasks are submitted to the agent's task queue and processed asynchronously
         for result in failed_results:
             # Check retry count
             if result.retry_count >= self.max_retries:
                 logger.warning(
-                    f"Max retries reached for test {result.test_id}, skipping regeneration"
+                    f"⚠️ Max retries ({self.max_retries}) reached for test {result.test_id}, skipping regeneration"
                 )
                 continue
             
-            # Submit regeneration task to Contractor agent's task queue
-            # This is the proper way to communicate between agents for task-based work
-            from agents.factory import AgentOrchestrator
-            
-            # Get contractor agent from the factory
-            # Note: In a production system, we would have a reference to the orchestrator
-            # For now, we log the regeneration request for future implementation
             logger.info(
-                f"Regeneration requested for test {result.test_id}: "
-                f"{result.error_message} (retry {result.retry_count + 1})"
+                f"♻️ Regeneration requested for test {result.test_id}: "
+                f"{result.error_message} (retry {result.retry_count + 1}/{self.max_retries})"
             )
             
-            # TODO: Submit task to Contractor agent when orchestrator reference is available
-            # await contractor.submit_task(
-            #     task_type="regenerate_test",
-            #     session_id=session_id,
-            #     payload={
-            #         "test_id": str(result.test_id),
-            #         "failure_reason": result.error_message,
-            #         "assertion_failures": result.assertion_failures,
-            #         "retry_count": result.retry_count + 1,
-            #     },
-            #     priority=TaskPriority.HIGH,
-            # )
-            
-            self._metrics["retries"] += 1
+            # Publish regeneration event to Contractor agent
+            # The Contractor will regenerate the test and automatically execute it via Runner
+            try:
+                await self.event_bus.publish(
+                    "contractor.regenerate_test",
+                    {
+                        "test_id": str(result.test_id),
+                        "failure_reason": result.error_message,
+                        "assertion_failures": result.assertion_failures,
+                        "retry_count": result.retry_count + 1,
+                        "session_id": str(session_id)
+                    }
+                )
+                logger.info(f"✅ Regeneration event published for test {result.test_id}")
+                self._metrics["retries"] += 1
+            except Exception as e:
+                logger.error(f"❌ Failed to publish regeneration event for test {result.test_id}: {e}")
     
     # Message handlers
     

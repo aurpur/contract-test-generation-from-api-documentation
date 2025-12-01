@@ -18,7 +18,9 @@ class AgentType(str, Enum):
     """Types of agents in the system."""
     INDUCTOR = "inductor"
     ORACLE = "oracle"
+    VALIDATION = "validation"
     CONTRACTOR = "contractor"
+    CODE_QUALITY = "code_quality"
     RUNNER = "runner"
 
 

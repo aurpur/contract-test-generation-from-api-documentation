@@ -9,14 +9,16 @@ Ce projet automatise la génération de tests de contrat à partir de documentat
 
 ## Architecture Multi-Agent
 
-Notre approche repose sur une architecture collaborative de quatre agents spécialisés orchestrés pour transformer la documentation d'API en tests de contrat exécutables.
+Notre approche repose sur une architecture collaborative de **six agents spécialisés** orchestrés pour transformer la documentation d'API en tests de contrat exécutables de haute qualité.
 
-### Agents Spécialisés
+### Agents Spécialisés (Phase 5.0)
 
 1. **Inductor** - Agent d'Induction du Contexte
-2. **Oracle** - Agent de Dérivation des Oracles
-3. **Contractor** - Agent de Matérialisation des Contrats
-4. **Runner** - Agent d'Exécution et Feedback
+2. **Oracle** - Agent de Dérivation des Oracles (+ Appels API Réels)
+3. **ValidationAgent** - Agent de Validation des Oracles
+4. **Contractor** - Agent de Matérialisation des Contrats
+5. **CodeQualityAgent** - Agent de Validation de la Qualité du Code
+6. **Runner** - Agent d'Exécution et Feedback
 
 ## Workflow Détaillé
 
@@ -31,7 +33,7 @@ L'agent **Inductor** analyse la collection Bruno en entrée pour extraire :
 
 Cette phase construit un contexte partagé structuré accessible aux agents suivants, compensant l'incomplétude documentaire par inférence heuristique.
 
-### Phase 2 : Dérivation des Oracles
+### Phase 2 : Dérivation des Oracles (+ Appels API Réels)
 
 L'agent **Oracle** reçoit le contexte partagé et dérive les règles de validation :
 - Codes de statut HTTP attendus
@@ -39,7 +41,28 @@ L'agent **Oracle** reçoit le contexte partagé et dérive les règles de valida
 - Invariants structurels JSON
 - Contraintes de domaine (plages de valeurs, formats)
 
-La collaboration inter-agent permet un consensus distribué où plusieurs LLMs proposent et vérifient mutuellement les oracles, réduisant les hallucinations et incohérences.
+**Nouveauté Phase 5.0** : L'Oracle peut maintenant effectuer des **appels API réels** pour collecter des données authentiques et améliorer la précision des oracles de manière itérative (+20-40% de confidence). Support d'authentification Bearer, Basic et API Key.
+
+### Phase 4 : Matérialisation des Contrats
+
+L'agent **Contractor** traduit les oracles abstraits en scripts de test concrets utilisant le framework Rest-Assured. Cette phase assure la cohérence entre spécification (oracles) et implémentation (code Java exécutable), avec :
+- Génération automatique des assertions
+- Configurations d'authentification
+- Gestion des dépendances
+
+### Phase 6 : Exécution et Feedback
+
+L'agent **Runner** orchestre l'exécution des tests générés contre l'API cible, collecte les métriques (taux de succès, couverture, temps d'exécution) et identifie les échecs. 
+
+En cas d'échec, une boucle de réparation adaptative transmet les traces d'erreur aux agents amont (Oracle, ValidationAgent, Inductor) qui raffinent leurs productions jusqu'à convergence ou seuil maximal d'itérations.
+- Détection de **5 antipatterns** (hard coding, copy-paste programming, etc.)
+- Mesure quantitative de l'écart oracle-code (alignment score, coverage ratio)
+- Génération de recommandations d'améliorationde (100-599)
+- Validation des headers (présence et format)
+- Validation du schéma de réponse (JSON Schema)
+- Validation des assertions JSONPath
+- Validation des règles métier
+- Scoring de qualité et recommandations d'amélioration
 
 ### Phase 3 : Matérialisation des Contrats
 

@@ -6,6 +6,7 @@ and configuring agents in the system.
 
 Author: Aurel IKAMA HONEY
 """
+import asyncio
 from typing import Dict, List, Optional, Type
 from uuid import UUID
 
@@ -139,9 +140,30 @@ class AgentFactory:
         # Add LLM configuration if agent accepts it
         if "llm_config" in param_names and llm_config:
             base_params["llm_config"] = llm_config
-        elif "llm_configs" in param_names and llm_config:
+        elif "llm_configs" in param_names:
             # Oracle agent expects a list of configs for consensus
-            base_params["llm_configs"] = [llm_config]
+            # Check if consensus is enabled
+            consensus_enabled = self._is_consensus_enabled()
+            
+            if consensus_enabled:
+                # Get all configured LLM models for consensus
+                all_llm_configs = self._get_all_llm_configs_for_consensus(agent_type)
+                if all_llm_configs:
+                    base_params["llm_configs"] = all_llm_configs
+                    consensus_threshold = self._get_consensus_threshold()
+                    base_params["consensus_threshold"] = consensus_threshold
+                    logger.info(f"Oracle agent: consensus enabled with {len(all_llm_configs)} models (threshold={consensus_threshold})")
+                elif llm_config:
+                    # Fallback to single config if consensus fails
+                    base_params["llm_configs"] = [llm_config]
+                    logger.warning("Consensus enabled but no models found, using single model")
+            else:
+                # Consensus disabled, use single model
+                if llm_config:
+                    base_params["llm_configs"] = [llm_config]
+                    logger.info(f"Oracle agent: consensus disabled, using single model ({llm_config.get('model')})")
+                else:
+                    logger.warning("No LLM config available for Oracle agent")
         
         # Add agent-specific parameters
         if agent_type == AgentType.RUNNER:
@@ -251,25 +273,37 @@ class AgentFactory:
         """
         logger.info(f"Stopping {len(self._agents)} agents")
         
-        # Stop in reverse order (Runner -> Contractor -> Oracle -> Inductor)
+        # Stop in reverse order (Runner -> CodeQuality -> Contractor -> Validation -> Oracle -> Inductor)
         agent_types = [
             AgentType.RUNNER,
+            AgentType.CODE_QUALITY,
             AgentType.CONTRACTOR,
+            AgentType.VALIDATION,
             AgentType.ORACLE,
             AgentType.INDUCTOR,
         ]
         
         for agent_type in agent_types:
             agent = self.get_agent(agent_type)
-            if agent and agent.is_running():
-                try:
-                    await agent.stop(timeout=timeout)
-                except Exception as e:
-                    logger.error(
-                        f"Error stopping agent",
-                        agent_type=agent_type.value,
-                        error=str(e),
-                    )
+            if agent:
+                if agent.is_running():
+                    try:
+                        logger.debug(f"Stopping agent: {agent_type.value}")
+                        await agent.stop(timeout=timeout)
+                        logger.debug(f"Agent stopped successfully: {agent_type.value}")
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            f"Timeout stopping agent",
+                            agent_type=agent_type.value,
+                            timeout=timeout,
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error stopping agent: {agent_type.value} - {type(e).__name__}: {str(e)}",
+                            exc_info=True
+                        )
+                else:
+                    logger.debug(f"Agent not running, skipping: {agent_type.value}")
         
         logger.info("All agents stopped")
     
@@ -323,8 +357,24 @@ class AgentFactory:
         if not self.config.llm_models:
             return None
         
-        # Try to find the first available LLM config
-        # Different agents may need different models in the future
+        # Try to get default model for this agent type
+        default_model_name = None
+        if hasattr(self.config, 'default_models') and self.config.default_models:
+            agent_key = agent_type.value.lower()
+            if isinstance(self.config.default_models, dict):
+                default_model_name = self.config.default_models.get(agent_key)
+            elif hasattr(self.config.default_models, agent_key):
+                default_model_name = getattr(self.config.default_models, agent_key)
+        
+        # If default model specified, use it
+        if default_model_name and default_model_name in self.config.llm_models:
+            model_config = self.config.llm_models[default_model_name]
+            if hasattr(model_config, 'model_dump'):
+                return model_config.model_dump()
+            elif isinstance(model_config, dict):
+                return model_config
+        
+        # Fallback: use first available LLM config
         for model_config in self.config.llm_models.values():
             if hasattr(model_config, 'model_dump'):
                 return model_config.model_dump()
@@ -332,6 +382,86 @@ class AgentFactory:
                 return model_config
         
         return None
+    
+    def _is_consensus_enabled(self) -> bool:
+        """
+        Check if consensus mode is enabled for Oracle agent.
+        
+        Returns:
+            True if consensus is enabled
+        """
+        if hasattr(self.config, 'consensus') and self.config.consensus:
+            if isinstance(self.config.consensus, dict):
+                return self.config.consensus.get('enabled', False)
+            elif hasattr(self.config.consensus, 'enabled'):
+                return self.config.consensus.enabled
+        return False
+    
+    def _get_consensus_threshold(self) -> float:
+        """
+        Get consensus threshold from config.
+        
+        Returns:
+            Consensus threshold (default: 0.7)
+        """
+        if hasattr(self.config, 'consensus') and self.config.consensus:
+            if isinstance(self.config.consensus, dict):
+                return self.config.consensus.get('threshold', 0.7)
+            elif hasattr(self.config.consensus, 'threshold'):
+                return self.config.consensus.threshold
+        return 0.7
+    
+    def _get_all_llm_configs_for_consensus(self, agent_type: AgentType) -> List[Dict]:
+        """
+        Get all LLM configurations for consensus (Oracle agent).
+        
+        Args:
+            agent_type: Type of agent
+            
+        Returns:
+            List of LLM configuration dictionaries
+        """
+        if not self.config.llm_models:
+            return []
+        
+        # Get consensus model names from config
+        consensus_models = []
+        if hasattr(self.config, 'consensus') and self.config.consensus:
+            if isinstance(self.config.consensus, dict):
+                consensus_models = self.config.consensus.get('models', [])
+            elif hasattr(self.config.consensus, 'models'):
+                consensus_models = self.config.consensus.models
+        
+        all_configs = []
+        
+        # Get specified models for consensus
+        if consensus_models:
+            for model_name in consensus_models:
+                if model_name in self.config.llm_models:
+                    model_config = self.config.llm_models[model_name]
+                    config_dict = None
+                    if hasattr(model_config, 'model_dump'):
+                        config_dict = model_config.model_dump()
+                    elif isinstance(model_config, dict):
+                        config_dict = model_config
+                    
+                    if config_dict:
+                        all_configs.append(config_dict)
+                        logger.info(f"Added {model_name} ({config_dict.get('model')}) for consensus")
+        else:
+            # Fallback: use all Ollama models if no specific models configured
+            for model_name, model_config in self.config.llm_models.items():
+                config_dict = None
+                if hasattr(model_config, 'model_dump'):
+                    config_dict = model_config.model_dump()
+                elif isinstance(model_config, dict):
+                    config_dict = model_config
+                
+                if config_dict and config_dict.get('provider') == 'ollama':
+                    all_configs.append(config_dict)
+                    logger.info(f"Added {model_name} ({config_dict.get('model')}) for consensus")
+        
+        return all_configs
 
 
 class AgentOrchestrator:

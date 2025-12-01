@@ -809,6 +809,18 @@ class ReportGenerator:
         """Generate pie chart for test results."""
         graph_path = self.graphs_dir / f"test_results_{timestamp}.png"
         
+        # Handle empty results gracefully
+        if not results or len(results) == 0:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+            ax1.text(0.5, 0.5, 'No test results', ha='center', va='center', transform=ax1.transAxes, fontsize=14)
+            ax1.set_title('Test Results Distribution')
+            ax2.text(0.5, 0.5, 'No test results', ha='center', va='center', transform=ax2.transAxes, fontsize=14)
+            ax2.set_title('Test Execution Times')
+            plt.tight_layout()
+            plt.savefig(graph_path, dpi=150)
+            plt.close()
+            return graph_path
+        
         passed = sum(1 for r in results if r.passed)
         failed = len(results) - passed
         
@@ -824,7 +836,8 @@ class ReportGenerator:
         
         # Execution time bar chart
         test_names = [f"Test {i+1}" for i in range(len(results))]
-        times = [r.execution_time_ms for r in results]
+        # Sanitize execution times - replace NaN/Inf with 0
+        times = [0 if math.isnan(r.execution_time_ms) or math.isinf(r.execution_time_ms) else r.execution_time_ms for r in results]
         bar_colors = ['#4CAF50' if r.passed else '#f44336' for r in results]
         
         ax2.bar(test_names, times, color=bar_colors)

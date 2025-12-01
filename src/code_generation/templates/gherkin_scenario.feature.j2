@@ -72,23 +72,20 @@ Feature: {{ feature_title }}
     {% endif %}
     
     {% if header_constraints %}
-    And the response headers should satisfy:
-      {% for header_name, constraint in header_constraints.items() %}
-      | {{ header_name }} | {{ constraint.constraint_type }} | {{ constraint.expected_value }} |
+    And the response headers should have the following values:
+      {% for header_name, expected_value in header_constraints.items() %}
+      | {{ header_name }} | {{ expected_value }} |
       {% endfor %}
     {% endif %}
     
-    {% if expected_schema %}
-    And the response body should match the schema:
-      """json
-      {{ expected_schema | tojson(indent=2) }}
-      """
+    {% if response_schema %}
+    And the response body should match the schema type: {{ response_schema.type }}
     {% endif %}
     
-    {% if jsonpath_assertions %}
+    {% if json_path_assertions %}
     And the response body should satisfy the following JSONPath assertions:
-      {% for assertion in jsonpath_assertions %}
-      | {{ assertion.path }} | {{ assertion.constraint_type }} | {{ assertion.expected_value }} |
+      {% for path, constraint in json_path_assertions.items() %}
+      | {{ path }} | {{ constraint.get('constraint_type', 'exists') }} | {{ constraint.get('expected_value', '') }} |
       {% endfor %}
     {% endif %}
     
@@ -96,8 +93,7 @@ Feature: {{ feature_title }}
     And the following business rules should be satisfied:
       {% for rule in business_rules %}
       """
-      {{ rule.description }}
-      Rule: {{ rule.rule }}
+      {{ rule }}
       """
       {% endfor %}
     {% endif %}

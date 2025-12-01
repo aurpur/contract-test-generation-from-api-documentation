@@ -26,19 +26,32 @@ llm:
       max_tokens: 4096
       base_url: http://localhost:11434
     
-    llama:
+    llama31:
       provider: ollama
       model: llama3.1:latest
+      temperature: 0.2
+      max_tokens: 4096
+      base_url: http://localhost:11434
+    
+    llama32:
+      provider: ollama
+      model: llama3.2:latest
       temperature: 0.2
       max_tokens: 4096
       base_url: http://localhost:11434
 
   # Default model for each agent
   default_models:
-    inductor: gpt4
-    oracle: claude
-    contractor: gpt4
-    runner: gpt4
+    inductor: llama32
+    oracle: llama32
+    contractor: llama32
+    runner: llama32
+  
+  # Consensus configuration for Oracle (uses multiple models)
+  consensus:
+    enabled: false  # Set to false to use single model (default_models.oracle)
+    models: [mistral, llama31, llama32]  # Models to use when consensus is enabled
+    threshold: 0.7  # 70% agreement required (0.5-1.0)
 
 # Retry configuration
 retry:

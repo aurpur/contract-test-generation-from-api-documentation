@@ -46,6 +46,8 @@ class Config(BaseModel):
     environment: str = Field(default_factory=lambda: os.getenv("ENVIRONMENT", "development"))
     llm_models: Dict[str, LLMConfig] = {}
     agents: Dict[str, AgentConfig] = {}
+    default_models: Dict[str, str] = {}  # Agent -> model name mapping
+    consensus: Optional[Dict[str, Any]] = None  # Consensus configuration
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     redis: RedisConfig = Field(default_factory=RedisConfig)
     log_level: str = Field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
@@ -134,10 +136,19 @@ def load_config() -> Config:
                 # Update to use Ollama fallback
                 llm_data["llm"]["default_models"][agent_name] = ollama_fallback
     
+    # Extract default_models and consensus config
+    default_models = {}
+    consensus = None
+    if "llm" in llm_data:
+        default_models = llm_data["llm"].get("default_models", {})
+        consensus = llm_data["llm"].get("consensus", None)
+    
     # Create main config
     config = Config(
         llm_models=llm_models,
-        agents=agents
+        agents=agents,
+        default_models=default_models,
+        consensus=consensus
     )
     
     return config

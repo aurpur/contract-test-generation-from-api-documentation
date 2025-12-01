@@ -141,12 +141,16 @@ class OllamaClient(BaseLLMClient):
         """Generate text from Ollama."""
         import ollama
         
+        # Optimize num_predict for faster generation
+        # Use a reasonable limit instead of max_tokens which might be too large
+        num_predict = kwargs.pop('num_predict', None) or min(self.max_tokens, 2048)
+        
         response = ollama.generate(
             model=self.model,
             prompt=prompt,
             options={
                 "temperature": self.temperature,
-                "num_predict": self.max_tokens,
+                "num_predict": num_predict,
             },
             **kwargs
         )

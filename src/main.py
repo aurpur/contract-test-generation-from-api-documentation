@@ -1,6 +1,19 @@
 """
 Main entry point for the Contract Test Generation system.
 
+Updates (2025-12-01):
+- Fixed asyncio timeout issue: Changed from fixed 60s sleep to polling mechanism (max 180s)
+- Added support for consensus mode toggle in Oracle agent
+- Improved LLM configuration to use default_models from llm_config.yaml
+- Oracle agent can now work with single model (consensus disabled) or multiple models (consensus enabled)
+- Default model changed to llama3.2 for better performance
+- Increased LLM timeout from 30s to 120s for complex oracle generation
+- Added TestFixer sub-agent: LLM-powered automatic error correction for BOTH tests AND generated code
+- TestFixer uses iterative fixing: tries multiple strategies per error category (assertion, compilation, runtime, timeout, null_pointer, timing_dependent, generated_code_error)
+- TestFixer now fixes compilation errors in generated code BEFORE running tests
+- Runner agent compiles project first, detects errors, and auto-fixes them using TestFixer
+- Detailed logging with emojis for better visibility (🔧 fixing, 🏗️ generated code, ✅ success, ❌ failure, 📊 metrics)
+
 Author: Aurel IKAMA HONEY
 """
 import asyncio
@@ -42,7 +55,9 @@ async def run_workflow(
     from agents.factory import create_agent_system
     from agents.inductor import InductorAgent
     from agents.oracle import OracleAgent
+    from agents.validation_agent import ValidationAgent
     from agents.contractor import ContractorAgent
+    from agents.code_quality_agent import CodeQualityAgent
     from agents.runner import RunnerAgent
     from datetime import datetime
     
@@ -96,15 +111,95 @@ async def run_workflow(
         factory = orchestrator.factory
         factory.register_agent_class(AgentType.INDUCTOR, InductorAgent)
         factory.register_agent_class(AgentType.ORACLE, OracleAgent)
+        factory.register_agent_class(AgentType.VALIDATION, ValidationAgent)
         factory.register_agent_class(AgentType.CONTRACTOR, ContractorAgent)
+        factory.register_agent_class(AgentType.CODE_QUALITY, CodeQualityAgent)
         factory.register_agent_class(AgentType.RUNNER, RunnerAgent)
         
         # Create agents
         logger.info("Creating agents...")
         inductor = factory.create_agent(AgentType.INDUCTOR)
         oracle = factory.create_agent(AgentType.ORACLE)
+        validation = factory.create_agent(AgentType.VALIDATION)
         contractor = factory.create_agent(AgentType.CONTRACTOR)
+        code_quality = factory.create_agent(AgentType.CODE_QUALITY)
         runner = factory.create_agent(AgentType.RUNNER)
+        
+        # Display LLM models for each agent in magenta/purple
+        # ANSI color code for magenta: \033[95m (reset: \033[0m)
+        magenta = "\033[95m"
+        cyan = "\033[96m"
+        yellow = "\033[93m"
+        reset = "\033[0m"
+        logger.info(f"\n{magenta}{'=' * 80}{reset}")
+        logger.info(f"{magenta}🤖 AGENTS & LLM MODELS CONFIGURATION{reset}")
+        logger.info(f"{magenta}{'=' * 80}{reset}")
+        
+        # Define all agents with their configuration
+        # Structure: (agent_instance, display_name, uses_llm, description, emoji)
+        agents_config = [
+            (inductor, "Inductor", True, "Context extraction with LLM", "📥"),
+            (oracle, "Oracle", True, "Oracle generation with LLM consensus", "🔮"),
+            (validation, "ValidationAgent", False, "Rule-based validation", "✅"),
+            (contractor, "Contractor", False, "Template-based code generation", "🏗️"),
+            (code_quality, "CodeQualityAgent", False, "Static analysis", "📊"),
+            (runner, "Runner", False, "Maven execution + auto-fix", "▶️"),
+        ]
+        
+        for agent, name, uses_llm, description, emoji in agents_config:
+            if uses_llm:
+                # For LLM-enabled agents, extract model information
+                model_info = "Unknown LLM"
+                
+                # Try to get from llm_client (Inductor)
+                llm_client = getattr(agent, 'llm_client', None)
+                if llm_client:
+                    provider = getattr(llm_client, 'provider', 'unknown')
+                    model = getattr(llm_client, 'model', 'unknown')
+                    model_info = f"{provider}/{model}"
+                
+                # Try to get from llm_clients list (Oracle with consensus)
+                llm_clients = getattr(agent, 'llm_clients', [])
+                if llm_clients:
+                    # Oracle uses multiple LLMs for consensus
+                    models = []
+                    for client in llm_clients:
+                        provider = getattr(client, 'provider', 'unknown')
+                        model = getattr(client, 'model', 'unknown')
+                        models.append(f"{provider}/{model}")
+                    
+                    if len(models) > 1:
+                        # Show consensus with multiple models
+                        consensus_threshold = getattr(agent, 'consensus_threshold', 0.7)
+                        model_info = f"CONSENSUS ({len(models)} models, threshold={consensus_threshold*100:.0f}%)"
+                        logger.info(f"{cyan}{emoji} {name:20s}: {yellow}✓ LLM{reset} → {model_info}")
+                        logger.info(f"{magenta}    └─ {description}{reset}")
+                        for i, model in enumerate(models, 1):
+                            logger.info(f"{magenta}       {i}. {model}{reset}")
+                    else:
+                        model_info = models[0] if models else "Multiple LLMs"
+                        logger.info(f"{cyan}{emoji} {name:20s}: {yellow}✓ LLM{reset} → {model_info}")
+                        logger.info(f"{magenta}    └─ {description}{reset}")
+                else:
+                    logger.info(f"{cyan}{emoji} {name:20s}: {yellow}✓ LLM{reset} → {model_info}")
+                    logger.info(f"{magenta}    └─ {description}{reset}")
+            else:
+                # For non-LLM agents, clearly indicate their operation mode
+                logger.info(f"{cyan}{emoji} {name:20s}: ✗ No LLM → {description}{reset}")
+        
+        # Display TestFixer sub-agent configuration
+        test_fixer_config = config.agents.get('test_fixer', None)
+        test_fixer_model = test_fixer_config.model if test_fixer_config and hasattr(test_fixer_config, 'model') else 'llama3.2'
+        test_fixer_max_iter = test_fixer_config.max_iterations if test_fixer_config and hasattr(test_fixer_config, 'max_iterations') else 3
+        test_fixer_max_fixes = test_fixer_config.max_fixes_per_category if test_fixer_config and hasattr(test_fixer_config, 'max_fixes_per_category') else 2
+        logger.info(f"")
+        logger.info(f"{cyan}🔧 TestFixer (Sub-Agent): {yellow}✓ LLM{reset} → ollama/{test_fixer_model}")
+        logger.info(f"{magenta}    └─ Automatic error fixing for tests AND generated code{reset}")
+        logger.info(f"{magenta}       • Max iterations per file: {test_fixer_max_iter}{reset}")
+        logger.info(f"{magenta}       • Max fixes per error category: {test_fixer_max_fixes}{reset}")
+        logger.info(f"{magenta}       • 8 error categories: ASSERTION, COMPILATION, RUNTIME, GENERATED_CODE, etc.{reset}")
+        
+        logger.info(f"{magenta}{'=' * 80}{reset}\n")
         
         logger.success("✓ System components initialized")
         
@@ -127,26 +222,35 @@ async def run_workflow(
         # 2. Display model information in reports for transparency and debugging
         # 3. Enable model-specific optimizations or fallbacks if needed
         #
-        # For each agent (inductor, oracle, contractor, runner):
-        # - Try to read the model from config.agents[agent_name].consensus.model
-        # - If not found or consensus config missing, fallback to 'mistral'
-        # - Store in llm_models dict with AgentType enum as key
+        # Agents using LLM: Inductor, Oracle
+        # Agents NOT using LLM: Contractor (template-based), ValidationAgent (rule-based),
+        #                       CodeQualityAgent (static analysis), Runner (Maven execution)
         # ==============================================================================
         llm_models = {}
-        for agent_name in ["inductor", "oracle", "contractor", "runner"]:
+        
+        # Only inductor, oracle, and test_fixer use LLM models
+        for agent_name in ["inductor", "oracle"]:
             agent_type = AgentType[agent_name.upper()]
+            
+            # Get default model from config (llama3.2 by default)
+            default_model = config.default_models.get(agent_name, 'llama32') if hasattr(config, 'default_models') else 'llama32'
             
             # Retrieve agent-specific configuration
             agent_config_dict = config.agents.get(agent_name, None)
             
-            # Extract model name from consensus config, with fallback
+            # Extract model name from consensus config, with fallback to default
             if agent_config_dict and hasattr(agent_config_dict, 'consensus'):
                 # Get model from consensus config if available
                 consensus_config = agent_config_dict.consensus
-                llm_models[agent_type] = consensus_config.get('model', 'mistral') if consensus_config else 'mistral'
+                llm_models[agent_type] = consensus_config.get('model', default_model) if consensus_config else default_model
             else:
                 # Fallback to default model if no config found
-                llm_models[agent_type] = 'mistral'
+                llm_models[agent_type] = default_model
+        
+        # Other agents don't use LLM, mark as N/A for clarity
+        for agent_name in ["contractor", "validation", "code_quality", "runner"]:
+            agent_type = AgentType[agent_name.upper()]
+            llm_models[agent_type] = "N/A (No LLM)"
         
         session = await context_manager.create_session(
             collection_name=collection_name,
@@ -162,6 +266,13 @@ async def run_workflow(
         logger.info("=" * 80)
         logger.info("Phase 1: Context Extraction (Inductor)")
         logger.info("=" * 80)
+        
+        # Display LLM model used by Inductor
+        inductor_llm = getattr(inductor, 'llm_client', None)
+        if inductor_llm:
+            provider = getattr(inductor_llm, 'provider', 'unknown')
+            model = getattr(inductor_llm, 'model', 'unknown')
+            logger.info(f"{magenta}🤖 Using LLM: {provider}/{model}{reset}")
         
         extract_task = await inductor.submit_task(
             task_type="extract_context",
@@ -186,6 +297,17 @@ async def run_workflow(
         logger.info("Phase 2: Oracle Generation (Oracle)")
         logger.info("=" * 80)
         
+        # Display LLM models used by Oracle (consensus)
+        oracle_llms = getattr(oracle, 'llm_clients', [])
+        if oracle_llms:
+            logger.info(f"{magenta}🤖 Using LLM Consensus with {len(oracle_llms)} models:{reset}")
+            for i, client in enumerate(oracle_llms, 1):
+                provider = getattr(client, 'provider', 'unknown')
+                model = getattr(client, 'model', 'unknown')
+                logger.info(f"{magenta}   {i}. {provider}/{model}{reset}")
+            consensus_threshold = getattr(oracle, 'consensus_threshold', 0.7)
+            logger.info(f"{magenta}   Consensus threshold: {consensus_threshold*100:.0f}%{reset}")
+        
         for endpoint in endpoints:
             oracle_task = await oracle.submit_task(
                 task_type="derive_oracles",
@@ -194,8 +316,23 @@ async def run_workflow(
                 priority=TaskPriority.NORMAL,
             )
         
-        # Wait for oracle generation (LLM can take 30-60s)
-        await asyncio.sleep(60)
+        # Wait for oracle generation (LLM can take 30-120s)
+        # Poll for completion instead of fixed sleep
+        max_wait_time = 180  # 3 minutes max
+        poll_interval = 5  # Check every 5 seconds
+        waited = 0
+        
+        while waited < max_wait_time:
+            oracles = await context_manager.get_oracles(session_id)
+            if len(oracles) >= len(endpoints):
+                logger.info(f"Oracle generation complete after {waited}s")
+                break
+            await asyncio.sleep(poll_interval)
+            waited += poll_interval
+            if waited % 30 == 0:  # Log every 30s
+                logger.info(f"Still waiting for oracles... ({waited}s elapsed, {len(oracles)}/{len(endpoints)} ready)")
+        else:
+            logger.warning(f"Oracle generation timeout after {max_wait_time}s")
         
         oracles = await context_manager.get_oracles(session_id)
         logger.success(f"✓ Generated {len(oracles)} oracles")
@@ -205,12 +342,38 @@ async def run_workflow(
             "message": f"Phase 2 complete: Generated {len(oracles)} oracles"
         })
         
-        # 6. Execute Contractor - Generate test code
+        # 6. Execute ValidationAgent - Validate generated oracles
         logger.info("=" * 80)
-        logger.info("Phase 3: Test Code Generation (Contractor)")
+        logger.info("Phase 3: Oracle Validation (ValidationAgent)")
         logger.info("=" * 80)
         
         oracle_ids = [str(oracle.id) for oracle in oracles]
+        validate_task = await validation.submit_task(
+            task_type="validate_multiple_oracles",
+            session_id=session_id,
+            payload={"oracle_ids": oracle_ids},
+            priority=TaskPriority.NORMAL,
+        )
+        
+        # Wait for validation (quick process)
+        await asyncio.sleep(5)
+        
+        # Get validation results from metrics
+        validation_metrics = validation.get_metrics()
+        passed = validation_metrics.get('oracles_passed', 0)
+        failed = validation_metrics.get('oracles_failed', 0)
+        logger.success(f"✓ Validated {len(oracles)} oracles: {passed} passed, {failed} failed")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "SUCCESS",
+            "message": f"Phase 3 complete: Validated {len(oracles)} oracles"
+        })
+        
+        # 7. Execute Contractor - Generate test code
+        logger.info("=" * 80)
+        logger.info("Phase 4: Test Code Generation (Contractor)")
+        logger.info("=" * 80)
+        
         contract_task = await contractor.submit_task(
             task_type="generate_tests",
             session_id=session_id,
@@ -227,13 +390,45 @@ async def run_workflow(
         
         tests = await context_manager.get_generated_tests(session_id)
         logger.success(f"✓ Generated {len(tests)} test files")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "SUCCESS",
+            "message": f"Phase 4 complete: Generated {len(tests)} test files"
+        })
         
-        # 7. Execute Runner - Run tests and collect results
+        # 8. Execute CodeQualityAgent - Analyze test quality
         logger.info("=" * 80)
-        logger.info("Phase 4: Test Execution (Runner)")
+        logger.info("Phase 5: Test Quality Analysis (CodeQualityAgent)")
         logger.info("=" * 80)
         
         test_ids = [str(test.id) for test in tests]
+        quality_task = await code_quality.submit_task(
+            task_type="analyze_multiple_tests",
+            session_id=session_id,
+            payload={"test_ids": test_ids},
+            priority=TaskPriority.NORMAL,
+        )
+        
+        # Wait for quality analysis
+        await asyncio.sleep(10)
+        
+        # Get quality metrics
+        quality_metrics = code_quality.get_metrics()
+        analyzed = quality_metrics.get('tests_analyzed', 0)
+        smells = quality_metrics.get('smells_detected', 0)
+        antipatterns = quality_metrics.get('antipatterns_detected', 0)
+        logger.success(f"✓ Analyzed {analyzed} tests: {smells} smells, {antipatterns} antipatterns detected")
+        log_entries.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "SUCCESS",
+            "message": f"Phase 5 complete: Analyzed {analyzed} tests"
+        })
+        
+        # 9. Execute Runner - Run tests and collect results
+        logger.info("=" * 80)
+        logger.info("Phase 6: Test Execution (Runner)")
+        logger.info("=" * 80)
+        
         run_task = await runner.submit_task(
             task_type="execute_tests",
             session_id=session_id,
@@ -253,10 +448,10 @@ async def run_workflow(
         log_entries.append({
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "level": "SUCCESS",
-            "message": f"Phase 4 complete: Executed {len(results)} tests"
+            "message": f"Phase 6 complete: Executed {len(results)} tests"
         })
         
-        # 8. Display summary
+        # 10. Display summary
         logger.info("=" * 80)
         logger.info("Workflow Summary")
         logger.info("=" * 80)
@@ -289,7 +484,7 @@ async def run_workflow(
         for event_type, count in event_stats['event_counts'].items():
             logger.info(f"    - {event_type}: {count}")
         
-        # 9. Generate reports
+        # 11. Generate reports
         logger.info("\n" + "=" * 80)
         logger.info("Generating Reports")
         logger.info("=" * 80)
@@ -340,7 +535,7 @@ async def run_workflow(
         )
         logger.success(f"✓ Workflow log: {log_file}")
         
-        # 10. Stop agents
+        # 12. Stop agents
         logger.info("\nStopping agents...")
         await orchestrator.stop()
         logger.success("✓ All agents stopped")

@@ -27,6 +27,14 @@ agents:
     description: "Executes tests and collects metrics"
     max_retries: 2
     timeout: 300
+    
+  test_fixer:
+    name: "Test Fixer Sub-Agent"
+    description: "Automatically fixes failing tests using LLM"
+    max_iterations: 3
+    max_fixes_per_category: 2
+    model: llama3.2
+    timeout: 60
 
 # Workflow Configuration
 workflow:
