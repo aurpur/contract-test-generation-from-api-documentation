@@ -22,7 +22,7 @@ from uuid import UUID
 import re
 
 from ..shared_context.models import GeneratedTest, Oracle
-from ..utils.java_code_analyzer import JavaCodeAnalyzer, CodeSmell, TestSmell, AntiPattern
+from ..utils.java_code_analyzer import JavaCodeAnalyzer, JavaCodeSmell
 
 
 @dataclass
@@ -139,10 +139,10 @@ class MaintainabilityMetrics:
     reusable_helpers: int
     hardcoded_values: int
     
-    # Smells and anti-patterns
-    code_smells: List[CodeSmell] = field(default_factory=list)
-    test_smells: List[TestSmell] = field(default_factory=list)
-    anti_patterns: List[AntiPattern] = field(default_factory=list)
+    # Smells and anti-patterns (as dicts from JavaCodeAnalyzer)
+    code_smells: List[Dict[str, Any]] = field(default_factory=list)
+    test_smells: List[Dict[str, Any]] = field(default_factory=list)
+    anti_patterns: List[Dict[str, Any]] = field(default_factory=list)
     
     maintainability_score: float = 0.0  # 0.0 to 1.0
     
@@ -289,7 +289,7 @@ class TestQualityReport:
         return self.overall_quality_score
 
 
-class TestQualityAnalyzer:
+class CodeQualityAnalyzer:
     """
     Analyzes quality of generated test code (RQ3).
     
@@ -322,7 +322,7 @@ class TestQualityAnalyzer:
             TestQualityReport with all quality metrics
         """
         # Analyze with JavaCodeAnalyzer
-        java_analysis = self.java_analyzer.analyze_code(test.test_code)
+        java_analysis = self.java_analyzer.analyze(test.test_code)
         
         # Calculate dimension metrics
         correctness = self._analyze_correctness(test, java_analysis)
@@ -486,9 +486,14 @@ class TestQualityAnalyzer:
         avg_line_length = sum(line_lengths) / len(line_lengths) if line_lengths else 0
         max_line_length = max(line_lengths) if line_lengths else 0
         
-        # Naming quality (simple heuristic)
-        descriptive_names = java_analysis["metrics"]["code_metrics"].get("descriptive_names", 0)
-        unclear_names = java_analysis["metrics"]["code_metrics"].get("unclear_names", 0)
+        # Naming quality (simple heuristic from code)
+        # Check for single-letter or very short variable names (poor naming)
+        single_letter_vars = len(re.findall(r'\b[a-z]\s*=', code))
+        method_names = re.findall(r'void\s+(\w+)\s*\(', code)
+        descriptive_method_names = sum(1 for name in method_names if len(name) > 4)
+        
+        descriptive_names = descriptive_method_names
+        unclear_names = single_letter_vars
         
         # Structure
         proper_indentation = max_line_length <= 150
@@ -519,20 +524,53 @@ class TestQualityAnalyzer:
         java_analysis: Dict[str, Any]
     ) -> MaintainabilityMetrics:
         """Analyze maintainability dimension."""
-        metrics = java_analysis["metrics"]["code_metrics"]
+        code = test.test_code
+        lines = code.split('\n')
+        
+        # Calculate cyclomatic complexity (simplified: count decision points)
+        complexity = 1  # Base complexity
+        complexity += code.count('if ')
+        complexity += code.count('for ')
+        complexity += code.count('while ')
+        complexity += code.count('case ')
+        complexity += code.count('&&')
+        complexity += code.count('||')
+        
+        # Code duplication (simplified: look for repeated patterns)
+        duplication_ratio = 0.0  # Would need more sophisticated analysis
+        
+        # Method counts
+        methods = re.findall(r'(public|private|protected)\s+\w+\s+\w+\s*\([^)]*\)', code)
+        number_of_methods = len(methods)
+        
+        # Method lengths
+        method_lengths = []
+        for match in re.finditer(r'(public|private|protected)\s+\w+\s+\w+\s*\([^)]*\)\s*\{', code):
+            # Simplified: just count lines in methods
+            method_lengths.append(len(lines))
+        
+        avg_method_length = sum(method_lengths) / len(method_lengths) if method_lengths else len(lines)
+        max_method_length = max(method_lengths) if method_lengths else len(lines)
+        
+        # Setup/teardown
+        proper_setup_teardown = '@Before' in code or '@BeforeEach' in code or '@After' in code
+        
+        # Helpers and hardcoded values
+        reusable_helpers = len(re.findall(r'private\s+\w+\s+\w+\s*\(', code))
+        hardcoded_values = len(re.findall(r'"[^"]{10,}"', code))  # Long string literals
         
         return MaintainabilityMetrics(
-            cyclomatic_complexity=metrics.get("cyclomatic_complexity", 0),
-            code_duplication_ratio=metrics.get("code_duplication_ratio", 0.0),
-            number_of_methods=metrics.get("number_of_methods", 1),
-            avg_method_length=metrics.get("avg_method_length", 0.0),
-            max_method_length=metrics.get("max_method_length", 0),
-            proper_setup_teardown=metrics.get("proper_setup_teardown", False),
-            reusable_helpers=metrics.get("reusable_helpers", 0),
-            hardcoded_values=metrics.get("hardcoded_values", 0),
-            code_smells=java_analysis.get("code_smells", []),
-            test_smells=java_analysis.get("test_smells", []),
-            anti_patterns=java_analysis.get("anti_patterns", [])
+            cyclomatic_complexity=complexity,
+            code_duplication_ratio=duplication_ratio,
+            number_of_methods=number_of_methods,
+            avg_method_length=avg_method_length,
+            max_method_length=max_method_length,
+            proper_setup_teardown=proper_setup_teardown,
+            reusable_helpers=reusable_helpers,
+            hardcoded_values=hardcoded_values,
+            code_smells=java_analysis.get("by_type", {}).get("code_smell", []),
+            test_smells=java_analysis.get("by_type", {}).get("test_smell", []),
+            anti_patterns=java_analysis.get("by_type", {}).get("antipattern", [])
         )
     
     def _analyze_best_practices(

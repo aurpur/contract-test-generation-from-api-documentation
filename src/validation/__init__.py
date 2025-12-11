@@ -35,7 +35,7 @@ from .inconsistency_detector import (
     InconsistencySeverity
 )
 from .test_quality_analyzer import (
-    TestQualityAnalyzer,
+    CodeQualityAnalyzer,
     TestQualityReport,
     CorrectnessMetrics,
     ReadabilityMetrics,

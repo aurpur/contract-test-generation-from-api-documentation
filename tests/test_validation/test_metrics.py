@@ -17,7 +17,7 @@ from src.validation.oracle_metrics import (
 from src.validation.inconsistency_detector import (
     InconsistencyDetector, InconsistencyType, InconsistencySeverity
 )
-from src.validation.test_quality_analyzer import TestQualityAnalyzer
+from src.validation.test_quality_analyzer import CodeQualityAnalyzer
 from src.validation.llm_comparator import LLMComparator
 from src.validation.completeness_analyzer import CompletenessAnalyzer
 
@@ -54,7 +54,8 @@ class TestOracleMetrics:
             optional_headers={},
             response_schema={"type": "object", "properties": {"id": {"type": "integer"}}},
             business_rules=[],
-            source="manual"
+            source="manual",
+            confidence=1.0
         )
         
         # Calculate metrics
@@ -94,7 +95,8 @@ class TestOracleMetrics:
             optional_headers={},
             response_schema={"type": "object", "properties": {"id": {"type": "integer"}}},
             business_rules=[],
-            source="manual"
+            source="manual",
+            confidence=1.0
         )
         
         metrics = calculator.calculate_metrics(oracle, endpoint, ground_truth=ground_truth)
@@ -234,7 +236,7 @@ class TestTestQualityAnalyzer:
     
     def test_analyze_high_quality_test(self):
         """Test analysis of a high-quality test."""
-        analyzer = TestQualityAnalyzer()
+        analyzer = CodeQualityAnalyzer()
         
         test = GeneratedTest(
             endpoint_id=uuid4(),
@@ -271,7 +273,7 @@ public void testGetUserReturns200() {
     
     def test_detect_code_smells(self):
         """Test detection of code smells."""
-        analyzer = TestQualityAnalyzer()
+        analyzer = CodeQualityAnalyzer()
         
         # Test with magic numbers
         test = GeneratedTest(
