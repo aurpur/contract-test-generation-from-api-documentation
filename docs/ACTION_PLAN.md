@@ -388,12 +388,84 @@
 - 📏 Mesure quantitative de l'écart oracle-code
 - 🔄 Feedback loop intelligent: Validation → Amélioration → Revalidation
 
-### 5.1 Implémentation Métriques
-- [ ] `oracle_metrics.py` (RQ1 - Précision oracles)
-- [ ] `inconsistency_detector.py` (RQ2 - Cohérence oracles/code)
-- [ ] `test_quality_analyzer.py` (RQ3 - Qualité code généré)
-- [ ] `llm_comparator.py` (RQ4 - Comparaison LLMs)
-- [ ] `completeness_analyzer.py` (RQ5 - Impact complétude)
+### 5.1 Implémentation Métriques ✅ (11 décembre 2025)
+- [x] `oracle_metrics.py` (RQ1 - Précision oracles)
+  - **Fichier créé**: `src/validation/oracle_metrics.py` (667 lignes)
+  - **Classes**: OracleMetricsCalculator, OraclePrecisionMetrics, GroundTruth, ValidationAspect
+  - **Métriques**: precision, recall, F1-score, completeness, confidence_calibration
+  - **Comparaison**: oracles générés vs ground truth vs réponses API réelles
+  - **Par catégorie**: status_code, headers, schema, business_rules
+  - **Agrégation**: statistiques multi-oracles, comparaison LLMs
+  
+- [x] `inconsistency_detector.py` (RQ2 - Cohérence oracles/code)
+  - **Fichier créé**: `src/validation/inconsistency_detector.py` (746 lignes)
+  - **Classes**: InconsistencyDetector, InconsistencyReport, Inconsistency
+  - **Types détectés**: missing_validation, extra_validation, incorrect_value, incorrect_type, incomplete_implementation
+  - **Sévérité**: critical, major, minor, info
+  - **Analyse**: Java code + Gherkin scenarios
+  - **Métriques**: coherence_score, java_coverage_ratio, gherkin_coverage_ratio
+  - **Recommandations**: suggestions de correction automatiques
+  
+- [x] `test_quality_analyzer.py` (RQ3 - Qualité code généré)
+  - **Fichier créé**: `src/validation/test_quality_analyzer.py` (637 lignes)
+  - **Classes**: TestQualityAnalyzer, TestQualityReport, CorrectnessMetrics, ReadabilityMetrics, MaintainabilityMetrics, BestPracticesMetrics
+  - **Dimensions**: correctness (40%), readability (20%), maintainability (25%), best_practices (15%)
+  - **Correctness**: assertions valides, matchers, framework usage
+  - **Readability**: lignes, commentaires, nommage, structure
+  - **Maintainability**: complexité, duplication, smells/antipatterns
+  - **Best Practices**: AAA pattern, Rest-Assured, JUnit conventions
+  - **Intégration**: JavaCodeAnalyzer pour détection smells
+  - **Recommandations**: issues critiques + suggestions d'amélioration
+  
+- [x] `llm_comparator.py` (RQ4 - Comparaison LLMs)
+  - **Fichier créé**: `src/validation/llm_comparator.py` (579 lignes)
+  - **Classes**: LLMComparator, LLMComparison, LLMPerformanceMetrics
+  - **Dimensions comparées**: oracle_quality, code_quality, consistency, performance, cost, robustness
+  - **Rankings**: classement 1-N pour chaque dimension + overall
+  - **Métriques agrégées**: moyennes, min, max par modèle
+  - **Normalized scores**: scores 0-1 pour comparaison équitable
+  - **Significant differences**: détection différences statistiquement significatives
+  - **Best models**: identification meilleur modèle par dimension
+  - **Report generation**: rapport texte + export CSV
+  - **Weights overall**: oracle(30%), code(25%), consistency(20%), perf(10%), cost(10%), robustness(5%)
+  
+- [x] `completeness_analyzer.py` (RQ5 - Impact complétude)
+  - **Fichier créé**: `src/validation/completeness_analyzer.py` (636 lignes)
+  - **Classes**: CompletenessAnalyzer, CompletenessAnalysisReport, CompletenessImpactMetrics
+  - **Catégories**: complete(80-100%), mostly_complete(60-79%), partial(40-59%), incomplete(20-39%), minimal(0-19%)
+  - **Corrélations**: completeness↔precision, completeness↔quality, completeness↔confidence (Pearson)
+  - **Thresholds**: min completeness pour quality>0.8, precision>0.8
+  - **Missing elements**: fréquence status_code, headers, schema, examples manquants
+  - **Degradation rate**: chute precision/quality par 10% baisse complétude
+  - **By category**: métriques moyennes par catégorie de complétude
+  - **LLM robustness**: comparaison gestion documentation incomplète par LLM
+  - **Baseline**: métrique baseline avec docs complètes (>90%)
+  - **Recommendations**: suggestions basées sur analyse
+  - **Export**: CSV pour analyse statistique externe
+
+**Fichiers créés (Phase 5.1)**:
+- `src/validation/oracle_metrics.py` (667 lignes)
+- `src/validation/inconsistency_detector.py` (746 lignes)
+- `src/validation/test_quality_analyzer.py` (637 lignes)
+- `src/validation/llm_comparator.py` (579 lignes)
+- `src/validation/completeness_analyzer.py` (636 lignes)
+- `src/validation/__init__.py` (mise à jour, exports)
+- `tests/test_validation/test_metrics.py` (545 lignes)
+- `tests/test_validation/__init__.py`
+
+**Total Phase 5.1**: ~3,810 lignes de code production + 545 lignes tests
+
+**Fonctionnalités clés**:
+- ✅ Métriques complètes pour RQ1-RQ5
+- ✅ Calcul precision/recall/F1 oracles
+- ✅ Détection incohérences oracles-code
+- ✅ Analyse qualité multi-dimensionnelle
+- ✅ Comparaison LLMs sur 6 dimensions
+- ✅ Corrélation complétude-qualité
+- ✅ Agrégation et statistiques
+- ✅ Export CSV pour analyse externe
+- ✅ Génération recommandations
+- ✅ Tests unitaires complets
 
 ### 5.2 Validation (RQ1)
 - [ ] Mesurer précision des oracles
