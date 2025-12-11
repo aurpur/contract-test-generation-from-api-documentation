@@ -25,6 +25,7 @@ from shared_context import (
 from orchestration import Task, MessageBuilder
 from utils.llm_client import BaseLLMClient, LLMClientFactory
 from utils.logging import logger
+from utils.url_validator import URLValidator, SSRFDetectedError, InvalidURLError
 
 
 class OracleAgent(BaseAgent):
@@ -103,6 +104,7 @@ class OracleAgent(BaseAgent):
         self.enable_api_calls = enable_api_calls
         self.max_api_retries = max_api_retries
         self._http_client: Optional[httpx.AsyncClient] = None
+        self._url_validator = URLValidator()  # SSRF protection
         
         # Metrics
         self.metrics["oracles_generated"] = 0
@@ -112,6 +114,7 @@ class OracleAgent(BaseAgent):
         self.metrics["api_calls_made"] = 0
         self.metrics["api_calls_successful"] = 0
         self.metrics["api_calls_failed"] = 0
+        self.metrics["ssrf_attempts_blocked"] = 0
     
     async def start(self) -> None:
         """Start the Oracle agent with HTTP client initialization."""
@@ -463,6 +466,19 @@ class OracleAgent(BaseAgent):
         Returns:
             Response data or None
         """
+        # Validate URL for SSRF protection
+        try:
+            self._url_validator.validate_url(context.url)
+        except SSRFDetectedError as e:
+            logger.error(f"SSRF attempt detected and blocked: {context.url} - {e}")
+            self.metrics["ssrf_attempts_blocked"] += 1
+            self.metrics["api_calls_failed"] += 1
+            return None
+        except InvalidURLError as e:
+            logger.error(f"Invalid URL detected: {context.url} - {e}")
+            self.metrics["api_calls_failed"] += 1
+            return None
+        
         for retry in range(self.max_api_retries):
             try:
                 self.metrics["api_calls_made"] += 1
