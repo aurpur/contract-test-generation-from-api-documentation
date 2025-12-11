@@ -526,10 +526,80 @@
 **Total Lines**: 3,297 lines of production code + tests
 **Completion Date**: December 11, 2025
 
-### 5.3 Validation (RQ2)
-- [ ] Détecter incohérences oracles/code
-- [ ] Tests de cohérence
-- [ ] Validation syntaxique Java
+### 5.3 Validation (RQ2) ✅ **COMPLETED**
+- [x] Détecter incohérences oracles/code
+- [x] Tests de cohérence
+- [x] Validation syntaxique Java
+
+**Implementation Details:**
+- **Consistency Validation** (`experiments/rq2_consistency_validation.py`, 565 lines)
+  - `ConsistencyExperimentConfig`: Configuration with quality thresholds
+  - `EndpointConsistencyResult`: Per-endpoint consistency metrics
+  - `ConsistencyExperimentReport`: Aggregate report with quality gates
+  - `RQ2ExperimentRunner`: Main orchestrator for consistency experiments
+  - Integration with `InconsistencyDetector` from validation module
+  - Coherence score calculation (oracle-code alignment)
+  - Java/Gherkin coverage ratio tracking
+  - Quality gates (min coherence, max critical/major issues)
+  - Async experiment execution
+  - JSON report persistence
+
+- **Batch Orchestration** (`experiments/rq2_orchestrator.py`, 650 lines)
+  - `BatchConsistencyConfig`: Configuration for batch consistency experiments
+  - `InconsistencyPattern`: Pattern detection dataclass
+  - `ConsistencyPatternAnalysis`: Cross-experiment pattern analysis
+  - `BatchConsistencyResults`: Aggregate batch results
+  - `RQ2Orchestrator`: Orchestrates consistency experiments across test suites
+  - Multi-suite, multi-LLM experiment execution
+  - Inconsistency pattern detection (common issues across endpoints)
+  - Model-specific pattern identification
+  - Statistical analysis placeholders (for scipy.stats)
+  - Comparative model summaries
+
+- **Reporting & Visualization** (`experiments/rq2_reporting.py`, 830+ lines)
+  - `RQ2ReportGenerator`: Publication-ready reports and visualizations
+  - Coherence comparison charts (bar chart with error bars)
+  - Coverage ratio charts (Java vs Gherkin)
+  - Inconsistency distribution charts (stacked by severity)
+  - Pattern analysis charts (horizontal bars for top 10 patterns)
+  - LaTeX tables for academic papers
+  - CSV exports for raw data analysis
+  - HTML interactive dashboards (metric cards, sortable tables, severity badges)
+  - Markdown summaries (GitHub-friendly)
+  - Matplotlib/Seaborn integration with graceful degradation
+  - Color scheme: Critical=#e74c3c, Major=#f39c12, Minor=#f1c40f
+  - 300 DPI chart output for publication quality
+
+- **Unit Tests** (`tests/test_rq2_validation.py`, 645 lines)
+  - 18+ test classes covering all RQ2 modules
+  - Tests for ConsistencyExperimentConfig (creation, defaults)
+  - Tests for EndpointConsistencyResult (metrics calculation, to_dict)
+  - Tests for ConsistencyExperimentReport (aggregation, save)
+  - Tests for RQ2ExperimentRunner (initialization, validation, empty data)
+  - Tests for BatchConsistencyConfig, InconsistencyPattern
+  - Tests for ConsistencyPatternAnalysis (pattern detection)
+  - Tests for RQ2ReportGenerator (LaTeX, CSV, HTML, markdown)
+  - Async test coverage for experiment execution
+  - Mock usage for external dependencies
+
+**Total Lines**: ~2,690 lines of production code + tests
+**Completion Date**: December 11, 2025
+
+**Fonctionnalités clés**:
+- ✅ Validation cohérence oracle-code (Java + Gherkin)
+- ✅ Calcul scores de cohérence (0.0-1.0)
+- ✅ Ratios de couverture Java/Gherkin
+- ✅ Comptage incohérences par sévérité (Critical/Major/Minor)
+- ✅ Comptage par type (missing/extra/incorrect)
+- ✅ Comptage par catégorie (status_code/header/schema)
+- ✅ Détection de patterns d'incohérences
+- ✅ Quality gates (seuils de passage)
+- ✅ Comparaison multi-LLM
+- ✅ Agrégation statistique (mean/std/min/max)
+- ✅ Rankings LLM par cohérence
+- ✅ Export multi-format (LaTeX/CSV/HTML/Markdown)
+- ✅ Visualisations publication-ready (4 types de charts)
+- ✅ Tests unitaires complets
 
 ### 5.5 Revue Qualité, Sécurité, Cohérence et Bonnes Pratiques ✅ **COMPLETED**
 **Date**: 11 décembre 2025  
