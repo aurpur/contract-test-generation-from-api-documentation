@@ -42,7 +42,7 @@ class TestJavaCodeAnalyzer:
         analyzer = JavaCodeAnalyzer()
         result = analyzer.analyze(code)
         
-        assert any(smell["type"] == "long_method" for smell in analyzer.smells)
+        assert any(smell.smell_type == "long_method" for smell in analyzer.smells)
     
     def test_detect_empty_catch_block(self):
         """Test empty catch block detection."""
@@ -83,7 +83,7 @@ class TestJavaCodeAnalyzer:
         analyzer = JavaCodeAnalyzer()
         result = analyzer.analyze(code)
         
-        assert any(smell["type"] == "deep_nesting" for smell in analyzer.smells)
+        assert any(smell.smell_type == "deep_nesting" for smell in analyzer.smells)
     
     def test_detect_long_parameter_list(self):
         """Test long parameter list detection."""
@@ -104,7 +104,7 @@ class TestJavaCodeAnalyzer:
         analyzer = JavaCodeAnalyzer()
         result = analyzer.analyze(code)
         
-        assert any(smell["type"] == "long_parameter_list" for smell in analyzer.smells)
+        assert any(smell.smell_type == "long_parameter_list" for smell in analyzer.smells)
     
     def test_detect_test_smells_eager_test(self):
         """Test eager test smell detection."""
@@ -128,7 +128,7 @@ class TestJavaCodeAnalyzer:
         analyzer = JavaCodeAnalyzer()
         result = analyzer.analyze(code)
         
-        assert any(smell["type"] == "eager_test" for smell in analyzer.smells)
+        assert any(smell.smell_type == "eager_test" for smell in analyzer.smells)
     
     def test_detect_test_smells_sleepy_test(self):
         """Test sleepy test smell detection."""
@@ -144,7 +144,7 @@ class TestJavaCodeAnalyzer:
         analyzer = JavaCodeAnalyzer()
         result = analyzer.analyze(code)
         
-        assert any(smell["type"] == "sleepy_test" for smell in analyzer.smells)
+        assert any(smell.smell_type == "sleepy_test" for smell in analyzer.smells)
     
     def test_detect_hardcoded_credentials(self):
         """Test hardcoded credentials detection."""
@@ -175,7 +175,7 @@ class TestJavaCodeAnalyzer:
         analyzer = JavaCodeAnalyzer()
         result = analyzer.analyze(code)
         
-        assert any(smell["type"] == "duplicate_code" for smell in analyzer.smells)
+        assert any(smell.smell_type == "duplicate_code" for smell in analyzer.smells)
     
     def test_categorize_by_severity(self):
         """Test smell categorization by severity."""
