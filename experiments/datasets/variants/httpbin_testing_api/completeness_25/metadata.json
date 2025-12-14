@@ -1,0 +1,14 @@
+{
+  "name": "httpbin_testing_api_c25",
+  "description": "HTTPBin Testing API at 25% documentation completeness",
+  "collection_path": "httpbin/collection.json",
+  "completeness_level": 0.25,
+  "num_endpoints": 9,
+  "domains": [
+    "authentication",
+    "content_management",
+    "rest_crud",
+    "user_management"
+  ],
+  "created_at": "2025-12-12T05:50:17.414472"
+}

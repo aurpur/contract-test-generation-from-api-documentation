@@ -1,0 +1,20 @@
+{
+  "split_name": "default",
+  "created_at": "2025-12-12T05:50:17.426311",
+  "random_seed": 42,
+  "stratify_by": [
+    "domain",
+    "completeness_level"
+  ],
+  "total_samples": 12,
+  "train": {
+    "num_samples": 8,
+    "ratio": 0.6666666666666666,
+    "path": "experiments/datasets/splits/default/train"
+  },
+  "test": {
+    "num_samples": 4,
+    "ratio": 0.3333333333333333,
+    "path": "experiments/datasets/splits/default/test"
+  }
+}

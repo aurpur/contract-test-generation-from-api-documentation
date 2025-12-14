@@ -1,0 +1,94 @@
+@startuml
+title Vue composants — Architecture du projet
+
+skinparam componentStyle rectangle
+
+package "Inputs" {
+  [API Docs / Bruno Collections] as Bruno
+  [Datasets Variants\n(experiments/datasets)] as Variants
+}
+
+package "Config" {
+  [LLM Config\n(config/llm_config.yaml)] as LLMConfig
+  [Agents Config\n(config/agents_config.yaml)] as AgentsConfig
+  [Metrics Config\n(config/metrics_config.yaml)] as MetricsConfig
+}
+
+package "Core (src/)" {
+  package "parsers" {
+    [Bruno Parser] as BrunoParser
+  }
+
+  package "shared_context" {
+    [ContextManager] as ContextManager
+    [Storage (InMemory/Redis/DB)] as Storage
+    [Models\n(EndpointContext, Oracle, GeneratedTest)] as Models
+  }
+
+  package "agents" {
+    [OracleAgent\n(derive_oracles)] as OracleAgent
+    [ContractorAgent\n(generate_tests)] as ContractorAgent
+    [LLM Client\n(Ollama/Cloud)] as LLMClient
+  }
+
+  package "validation" {
+    [Oracle Metrics\n(RQ1)] as RQ1Metrics
+    [Inconsistency Detector\n(RQ2)] as RQ2Detector
+    [Test Quality Analyzer\n(RQ3)] as RQ3Analyzer
+    [LLM Comparator\n(RQ4)] as RQ4Comparator
+    [Completeness Impact\n(RQ5)] as RQ5Impact
+  }
+}
+
+package "Experiment Layer" {
+  [Experiment Runners\n(experiments/rq*_*.py)] as ExpRunners
+  [Phase 6.2 Runner\n(scripts/run_phase_6_2.py)] as Phase62
+}
+
+package "Outputs" {
+  [Persisted Reports JSON\n(experiments/results/rq1..rq5)] as Reports
+  [Notebooks Analysis\n(experiments/notebooks)] as Notebooks
+}
+
+' Flows / dependencies
+Bruno --> BrunoParser
+Variants --> Phase62
+
+LLMConfig --> LLMClient
+AgentsConfig --> OracleAgent
+AgentsConfig --> ContractorAgent
+MetricsConfig --> RQ1Metrics
+MetricsConfig --> RQ2Detector
+MetricsConfig --> RQ3Analyzer
+
+BrunoParser --> Models
+Models --> ContextManager
+Storage --> ContextManager
+
+ContextManager --> OracleAgent
+ContextManager --> ContractorAgent
+
+OracleAgent --> LLMClient
+ContractorAgent --> LLMClient
+
+OracleAgent --> Models
+ContractorAgent --> Models
+
+Phase62 --> ContextManager
+Phase62 --> OracleAgent
+Phase62 --> ContractorAgent
+
+Phase62 --> RQ1Metrics
+Phase62 --> RQ2Detector
+Phase62 --> RQ3Analyzer
+Phase62 --> RQ4Comparator
+Phase62 --> RQ5Impact
+
+ExpRunners --> ContextManager
+ExpRunners --> Models
+ExpRunners --> Reports
+
+Phase62 --> Reports
+Reports --> Notebooks
+
+@enduml

@@ -1,0 +1,744 @@
+{
+  "created_at": "2025-12-12T05:50:17.402163",
+  "count": 30,
+  "ground_truths": [
+    {
+      "endpoint_id": "b368d8f4-8b43-465f-af92-036e2993f873",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402037"
+    },
+    {
+      "endpoint_id": "dce45df6-b0a1-4fc8-9ef2-9fbe153b1dce",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402043"
+    },
+    {
+      "endpoint_id": "c7b98d34-899f-4153-a53a-56ab07981b2b",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://jsonplaceholder.typicode.com/posts/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402048"
+    },
+    {
+      "endpoint_id": "8535ba1d-f8c1-44df-af60-5bd578c74c72",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402052"
+    },
+    {
+      "endpoint_id": "aadfa6c8-3e25-4457-982f-64e18ec5569d",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402055"
+    },
+    {
+      "endpoint_id": "fba6c0d3-2158-4632-a6a2-48ddb5215a13",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402058"
+    },
+    {
+      "endpoint_id": "2853f752-8b80-4726-bd88-f1ac31c715f4",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402061"
+    },
+    {
+      "endpoint_id": "2333ee47-bbf9-4f64-abaa-2e3f58c7db8f",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://jsonplaceholder.typicode.com/comments/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402064"
+    },
+    {
+      "endpoint_id": "7da76015-40db-4eb5-8d1b-d68c56febaf2",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402069"
+    },
+    {
+      "endpoint_id": "25592221-85b2-4865-a258-8e8d706ef786",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402072"
+    },
+    {
+      "endpoint_id": "c849a525-adf4-4a49-9d32-8cb7be69e9f9",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402075"
+    },
+    {
+      "endpoint_id": "f036caa3-462d-4ab7-bcd6-916d9c46bf14",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402077"
+    },
+    {
+      "endpoint_id": "00dc7ac7-643c-4cee-82c5-f51108f2274f",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://jsonplaceholder.typicode.com/albums/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402081"
+    },
+    {
+      "endpoint_id": "0298b593-91cd-40bc-ad4b-7868621c4c41",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402083"
+    },
+    {
+      "endpoint_id": "05e66b47-1de9-4891-bbbc-a5d16983a799",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402086"
+    },
+    {
+      "endpoint_id": "947fdca1-4c7c-441f-bdb8-036364e33150",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402090"
+    },
+    {
+      "endpoint_id": "4e2e5ef4-02e9-48af-95bf-dd093bcb5df0",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402093"
+    },
+    {
+      "endpoint_id": "fd0a8544-36c0-4e9d-8026-1ede6043b4e7",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://jsonplaceholder.typicode.com/photos/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402096"
+    },
+    {
+      "endpoint_id": "700a8b31-d22b-4d4c-905e-067cb13f29ed",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402099"
+    },
+    {
+      "endpoint_id": "58ee52f8-2e23-4482-8628-e4b5fa856b73",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402102"
+    },
+    {
+      "endpoint_id": "841de4cd-b69c-4340-8ab4-b6fd1dec2217",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402106"
+    },
+    {
+      "endpoint_id": "8b39b563-85c4-4ac6-bae0-b69df342fe5a",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402108"
+    },
+    {
+      "endpoint_id": "6e8e8229-217c-4ce2-81bf-a9283687410e",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://jsonplaceholder.typicode.com/todos/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402111"
+    },
+    {
+      "endpoint_id": "9d17f269-adac-4d54-ae64-8daf6701c3d6",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402114"
+    },
+    {
+      "endpoint_id": "fad4fa85-f8ac-4998-81db-319a2deda2b0",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402117"
+    },
+    {
+      "endpoint_id": "d147c5ca-eba6-479e-b2c7-704beace6263",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402120"
+    },
+    {
+      "endpoint_id": "8fe47b46-c73e-45d1-b5ae-4a6acfee8f90",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402123"
+    },
+    {
+      "endpoint_id": "15f4fd37-dc8f-43a2-9873-f42f6dabb3da",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://jsonplaceholder.typicode.com/users/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402126"
+    },
+    {
+      "endpoint_id": "965bea52-152b-4bbf-a6ff-700fc88bdeb5",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402130"
+    },
+    {
+      "endpoint_id": "88ca3d5f-c699-4263-acdc-5b04a81fdddd",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.402132"
+    }
+  ]
+}

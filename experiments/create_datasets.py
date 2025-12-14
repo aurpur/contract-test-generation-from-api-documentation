@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Any
 from uuid import UUID
 
 from src.parsers.bruno_parser import BrunoParser
-from src.shared_context.models import EndpointContext, HTTPMethod
+from src.shared_context.models import EndpointContext, HTTPMethod, AuthType
 from experiments.ground_truth_manager import GroundTruthManager
 
 
@@ -56,6 +56,79 @@ class RQ1DatasetCreator:
             storage_dir=self.output_dir / "ground_truths"
         )
     
+    def _convert_bruno_items_to_endpoints(self, bruno_items: List) -> List[EndpointContext]:
+        """
+        Convert BrunoItem objects to EndpointContext objects.
+        
+        Args:
+            bruno_items: List of BrunoItem objects from parser
+            
+        Returns:
+            List of EndpointContext objects
+        """
+        endpoints = []
+        
+        for item in bruno_items:
+            if not item.request:
+                continue
+            
+            request = item.request
+            
+            # Convert headers to dict
+            headers = {h.name: h.value for h in request.headers if h.enabled}
+            
+            # Convert query params to dict
+            query_params = {p.name: p.value for p in request.params if p.enabled}
+            
+            # Extract path parameters from URL
+            import re
+            path_params = re.findall(r'\{(\w+)\}|:(\w+)', request.url)
+            path_params = [p[0] or p[1] for p in path_params]
+            
+            # Parse body
+            body = None
+            body_schema = None
+            if request.body.mode == "json" and request.body.json:
+                try:
+                    body = json.loads(request.body.json)
+                except:
+                    body = {"raw": request.body.json}
+            
+            # Map auth type
+            auth_type_map = {
+                "none": AuthType.NONE,
+                "basic": AuthType.BASIC,
+                "bearer": AuthType.BEARER,
+                "apikey": AuthType.API_KEY,
+                "oauth2": AuthType.OAUTH2
+            }
+            auth_type = auth_type_map.get(request.auth.mode, AuthType.NONE)
+            
+            # Create EndpointContext
+            endpoint = EndpointContext(
+                name=item.name,
+                method=HTTPMethod[request.method],
+                url=request.url,
+                headers=headers,
+                query_params=query_params,
+                path_params=path_params,
+                body=body,
+                body_schema=body_schema,
+                auth_type=auth_type,
+                auth_config={
+                    "username": request.auth.username,
+                    "password": request.auth.password,
+                    "token": request.auth.token
+                } if auth_type != AuthType.NONE else {},
+                description=request.docs or item.name,
+                tags=item.tags,
+                documentation_completeness=1.0  # Assume full completeness initially
+            )
+            
+            endpoints.append(endpoint)
+        
+        return endpoints
+    
     def create_dataset_from_collection(
         self,
         collection_path: str,
@@ -87,7 +160,11 @@ class RQ1DatasetCreator:
             dataset_name = collection_name.replace(" ", "_").lower()
         
         # Parse endpoints
-        endpoints = self.parser.parse_collection(str(collection_file))
+        parse_result = self.parser.parse_collection_from_json(str(collection_file))
+        bruno_items = parse_result.get_all_requests()
+        
+        # Convert BrunoItems to EndpointContext
+        endpoints = self._convert_bruno_items_to_endpoints(bruno_items)
         print(f"✓ Parsed {len(endpoints)} endpoints from collection")
         
         # Create ground truths for full completeness

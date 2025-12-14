@@ -533,3 +533,7 @@ class LLMComparator:
                     metrics.avg_cost_per_test, metrics.incomplete_doc_precision,
                     metrics.incomplete_doc_quality
                 ])
+
+
+# Backward-compatible alias (used by experiments/rq4_llm_comparison.py)
+LLMComparisonReport = LLMComparison

@@ -433,7 +433,7 @@ class CodeQualityAnalyzer:
             results[model] = self.analyze_multiple_tests(tests, oracles_by_endpoint)
         
         return results
-    
+
     # Private helper methods
     
     def _analyze_correctness(
@@ -705,3 +705,8 @@ class CodeQualityAnalyzer:
             suggestions.append("Use descriptive test method names (e.g., testGetUserReturns200)")
         
         return suggestions
+
+
+# Backward-compatible aliases (used by experiments/rq3_quality_validation.py)
+TestQualityAnalyzer = CodeQualityAnalyzer
+QualityReport = TestQualityReport

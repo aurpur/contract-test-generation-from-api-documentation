@@ -1,0 +1,98 @@
+[
+  {
+    "sample_id": "87ae88c2-b98f-4df7-8091-da492209690d",
+    "collection_name": "jsonplaceholder_rest_api",
+    "variant_name": "completeness_50",
+    "completeness_level": 0.5,
+    "domain": "unknown",
+    "num_endpoints": 30,
+    "complexity_score": 1.0,
+    "endpoints_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_50/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_50/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_50/metadata.json"
+  },
+  {
+    "sample_id": "8c1e4b8d-4c32-420e-884b-e9ec2307630d",
+    "collection_name": "httpbin_testing_api",
+    "variant_name": "completeness_50",
+    "completeness_level": 0.5,
+    "domain": "unknown",
+    "num_endpoints": 9,
+    "complexity_score": 0.45,
+    "endpoints_file": "experiments/datasets/variants/httpbin_testing_api/completeness_50/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/httpbin_testing_api/completeness_50/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/httpbin_testing_api/completeness_50/metadata.json"
+  },
+  {
+    "sample_id": "b20a7408-ea11-4757-bf10-988b2c8138ec",
+    "collection_name": "reqres_users_api",
+    "variant_name": "completeness_100",
+    "completeness_level": 1.0,
+    "domain": "unknown",
+    "num_endpoints": 7,
+    "complexity_score": 0.35,
+    "endpoints_file": "experiments/datasets/variants/reqres_users_api/completeness_100/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/reqres_users_api/completeness_100/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/reqres_users_api/completeness_100/metadata.json"
+  },
+  {
+    "sample_id": "038451d5-1972-4461-85c1-d4cc3b740743",
+    "collection_name": "jsonplaceholder_rest_api",
+    "variant_name": "completeness_100",
+    "completeness_level": 1.0,
+    "domain": "unknown",
+    "num_endpoints": 30,
+    "complexity_score": 1.0,
+    "endpoints_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_100/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_100/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_100/metadata.json"
+  },
+  {
+    "sample_id": "98ca9cbf-f052-43d6-94ca-5c8de2ba4909",
+    "collection_name": "jsonplaceholder_rest_api",
+    "variant_name": "completeness_75",
+    "completeness_level": 0.75,
+    "domain": "unknown",
+    "num_endpoints": 30,
+    "complexity_score": 1.0,
+    "endpoints_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_75/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_75/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_75/metadata.json"
+  },
+  {
+    "sample_id": "605a17fd-fffc-4596-8e74-cb9c18f2fd91",
+    "collection_name": "reqres_users_api",
+    "variant_name": "completeness_75",
+    "completeness_level": 0.75,
+    "domain": "unknown",
+    "num_endpoints": 7,
+    "complexity_score": 0.35,
+    "endpoints_file": "experiments/datasets/variants/reqres_users_api/completeness_75/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/reqres_users_api/completeness_75/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/reqres_users_api/completeness_75/metadata.json"
+  },
+  {
+    "sample_id": "7a9d6472-63f0-4b54-ab12-cfd6e29983de",
+    "collection_name": "jsonplaceholder_rest_api",
+    "variant_name": "completeness_25",
+    "completeness_level": 0.25,
+    "domain": "unknown",
+    "num_endpoints": 30,
+    "complexity_score": 1.0,
+    "endpoints_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_25/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_25/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/jsonplaceholder_rest_api/completeness_25/metadata.json"
+  },
+  {
+    "sample_id": "4562933f-adaf-44e9-8fd8-2564d023cd2d",
+    "collection_name": "reqres_users_api",
+    "variant_name": "completeness_25",
+    "completeness_level": 0.25,
+    "domain": "unknown",
+    "num_endpoints": 7,
+    "complexity_score": 0.35,
+    "endpoints_file": "experiments/datasets/variants/reqres_users_api/completeness_25/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/reqres_users_api/completeness_25/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/reqres_users_api/completeness_25/metadata.json"
+  }
+]

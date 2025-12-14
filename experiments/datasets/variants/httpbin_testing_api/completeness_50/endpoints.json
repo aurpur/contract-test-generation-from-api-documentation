@@ -1,0 +1,76 @@
+{
+  "endpoints": [
+    {
+      "id": "f080b308-6bbf-43a7-854a-9c670ec1132a",
+      "name": "GET request",
+      "method": "GET",
+      "url": "https://httpbin.org/get",
+      "description": "Test GET request",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "6c560818-a3f8-40f3-8854-cb999e6dae9e",
+      "name": "POST request",
+      "method": "POST",
+      "url": "https://httpbin.org/post",
+      "description": "Test POST request",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "5da2add9-204b-460f-b908-9ae501e67f8f",
+      "name": "Status 200",
+      "method": "GET",
+      "url": "https://httpbin.org/status/200",
+      "description": "Return status",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "26f11bf4-5982-4331-80f6-fe2a0bfa7346",
+      "name": "Status 400",
+      "method": "GET",
+      "url": "https://httpbin.org/status/400",
+      "description": "Return status",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "f7ff8cb5-a0a9-483a-bb3e-8b1d0bc7d143",
+      "name": "Status 404",
+      "method": "GET",
+      "url": "https://httpbin.org/status/404",
+      "description": "Return status",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "45085b49-122c-4bb1-900b-881b3d17aba0",
+      "name": "Status 500",
+      "method": "GET",
+      "url": "https://httpbin.org/status/500",
+      "description": "Return status",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "6d3f5610-56f0-4eb0-b2d8-12008263afdc",
+      "name": "Get headers",
+      "method": "GET",
+      "url": "https://httpbin.org/headers",
+      "description": "Return",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "5ce0c2f9-2178-4290-8fe4-9d0e4c7aa3cb",
+      "name": "Delayed response",
+      "method": "GET",
+      "url": "https://httpbin.org/delay/2",
+      "description": "Delayed response",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "c4eee30c-ac2d-4dcb-88bd-d371164ba647",
+      "name": "Basic authentication",
+      "method": "GET",
+      "url": "https://httpbin.org/basic-auth/user/pass",
+      "description": "Test",
+      "documentation_completeness": 0.5
+    }
+  ]
+}

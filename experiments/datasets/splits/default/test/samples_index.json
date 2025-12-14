@@ -1,0 +1,50 @@
+[
+  {
+    "sample_id": "2e891248-e1ef-4fcd-b6c2-e33a38580ade",
+    "collection_name": "reqres_users_api",
+    "variant_name": "completeness_50",
+    "completeness_level": 0.5,
+    "domain": "unknown",
+    "num_endpoints": 7,
+    "complexity_score": 0.35,
+    "endpoints_file": "experiments/datasets/variants/reqres_users_api/completeness_50/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/reqres_users_api/completeness_50/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/reqres_users_api/completeness_50/metadata.json"
+  },
+  {
+    "sample_id": "e30476f3-47f7-4b26-989f-d2835cbd0816",
+    "collection_name": "httpbin_testing_api",
+    "variant_name": "completeness_100",
+    "completeness_level": 1.0,
+    "domain": "unknown",
+    "num_endpoints": 9,
+    "complexity_score": 0.45,
+    "endpoints_file": "experiments/datasets/variants/httpbin_testing_api/completeness_100/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/httpbin_testing_api/completeness_100/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/httpbin_testing_api/completeness_100/metadata.json"
+  },
+  {
+    "sample_id": "92a85cde-aff8-4893-99e2-da3535ae5d06",
+    "collection_name": "httpbin_testing_api",
+    "variant_name": "completeness_75",
+    "completeness_level": 0.75,
+    "domain": "unknown",
+    "num_endpoints": 9,
+    "complexity_score": 0.45,
+    "endpoints_file": "experiments/datasets/variants/httpbin_testing_api/completeness_75/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/httpbin_testing_api/completeness_75/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/httpbin_testing_api/completeness_75/metadata.json"
+  },
+  {
+    "sample_id": "3f6980f6-74ec-4e39-90f4-5ef41d91c184",
+    "collection_name": "httpbin_testing_api",
+    "variant_name": "completeness_25",
+    "completeness_level": 0.25,
+    "domain": "unknown",
+    "num_endpoints": 9,
+    "complexity_score": 0.45,
+    "endpoints_file": "experiments/datasets/variants/httpbin_testing_api/completeness_25/endpoints.json",
+    "ground_truth_file": "experiments/datasets/variants/httpbin_testing_api/completeness_25/ground_truth.json",
+    "metadata_file": "experiments/datasets/variants/httpbin_testing_api/completeness_25/metadata.json"
+  }
+]

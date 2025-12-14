@@ -217,10 +217,11 @@ class ModelCompletenessResult:
                 quality_drop = (current.avg_overall_quality - next_level.avg_overall_quality) / (completeness_drop / 10)
                 precision_drop = (current.avg_oracle_precision - next_level.avg_oracle_precision) / (completeness_drop / 10)
                 recall_drop = (current.avg_oracle_recall - next_level.avg_oracle_recall) / (completeness_drop / 10)
-                
-                quality_drops.append(quality_drop)
-                precision_drops.append(precision_drop)
-                recall_drops.append(recall_drop)
+
+                # Degradation rate is a magnitude; clamp negatives to 0 (no degradation).
+                quality_drops.append(max(0.0, quality_drop))
+                precision_drops.append(max(0.0, precision_drop))
+                recall_drops.append(max(0.0, recall_drop))
         
         if quality_drops:
             self.quality_degradation_rate = statistics.mean(quality_drops)

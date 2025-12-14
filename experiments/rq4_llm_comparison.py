@@ -42,7 +42,7 @@ class LLMComparisonConfig:
     name: str
     description: str
     llm_models: List[str]
-    num_endpoints: int
+    num_endpoints: int = 0
     
     # Comparison dimensions
     compare_oracle_quality: bool = True
@@ -169,6 +169,25 @@ class ModelPerformanceResult:
             cost_score * 0.10 +
             robustness_score * 0.10
         )
+
+    def calculate_normalized_performance(self, max_time_ms: float = 10000.0) -> float:
+        """Return normalized performance score in [0,1] (higher is better)."""
+        if max_time_ms <= 0:
+            return 0.0
+        return max(0.0, min(1.0, 1.0 - (self.avg_generation_time_ms / max_time_ms)))
+
+    def calculate_normalized_cost(self, max_cost_per_endpoint_usd: float = 0.50) -> float:
+        """Return normalized cost score in [0,1] (higher is better)."""
+        if max_cost_per_endpoint_usd <= 0:
+            return 0.0
+
+        cost_per_endpoint = self.cost_per_endpoint_usd
+        if cost_per_endpoint <= 0.0 and self.total_cost_usd > 0.0:
+            # Best-effort fallback when cost_per_endpoint wasn't computed.
+            denom = float(self.total_attempts or self.successful_generations or 1)
+            cost_per_endpoint = self.total_cost_usd / denom
+
+        return max(0.0, min(1.0, 1.0 - (cost_per_endpoint / max_cost_per_endpoint_usd)))
     
     def to_dict(self) -> Dict:
         """Convert result to dictionary."""

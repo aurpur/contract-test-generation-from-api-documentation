@@ -1,0 +1,186 @@
+{
+  "created_at": "2025-12-12T05:50:17.409236",
+  "count": 7,
+  "ground_truths": [
+    {
+      "endpoint_id": "d01e37b7-b5e4-4b82-bae6-3cab505ca385",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "business_rules": [],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409184"
+    },
+    {
+      "endpoint_id": "70944494-5151-4f45-8e9e-a0ffb4525934",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409189"
+    },
+    {
+      "endpoint_id": "0ba89992-ccd0-47f0-afb2-fb24e0d61663",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://reqres.in/api/users/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409193"
+    },
+    {
+      "endpoint_id": "71a0cf75-1421-4163-830c-d8debee7dd06",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 404 if resource not found",
+        "Returns 400 if request body invalid"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409197"
+    },
+    {
+      "endpoint_id": "5cc4d870-6152-42f4-a869-1ca3e3bc18bb",
+      "status_code": 204,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "null"
+      },
+      "business_rules": [
+        "Returns 404 if resource not found"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409200"
+    },
+    {
+      "endpoint_id": "49fb6719-00e0-49bf-af79-39a44b3b4cbf",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://reqres.in/api/register/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409203"
+    },
+    {
+      "endpoint_id": "62a81474-2b95-4d6e-9bc4-d5da89e8df24",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "https://reqres.in/api/login/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "business_rules": [
+        "Returns 400 if request body invalid",
+        "Returns 409 if resource already exists",
+        "Returns 401 if authentication fails"
+      ],
+      "source": "auto_generated",
+      "confidence": 0.8,
+      "annotator": "RQ1DatasetCreator",
+      "created_at": "2025-12-12T05:50:17.409206"
+    }
+  ]
+}

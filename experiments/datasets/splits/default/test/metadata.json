@@ -1,0 +1,26 @@
+{
+  "split_id": "f24af55a-37d3-433f-a9e9-f4c0edf6531c",
+  "split_type": "test",
+  "split_ratio": 0.8,
+  "total_samples": 4,
+  "num_samples": 4,
+  "collections_included": [
+    "httpbin_testing_api",
+    "reqres_users_api"
+  ],
+  "completeness_levels": [
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "domains": [
+    "unknown"
+  ],
+  "stratify_by": [
+    "domain",
+    "completeness_level"
+  ],
+  "random_seed": 42,
+  "created_at": "2025-12-12T05:50:17.426121"
+}

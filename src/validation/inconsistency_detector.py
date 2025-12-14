@@ -419,8 +419,19 @@ class InconsistencyDetector:
             if required_header not in java_headers:
                 severity = InconsistencySeverity.MAJOR if required_header.lower() in ["content-type", "authorization"] else InconsistencySeverity.MINOR
                 
-                constraint = oracle.header_constraints.get(required_header, {})
+                raw_constraint = oracle.header_constraints.get(required_header, {})
+                if isinstance(raw_constraint, str):
+                    constraint = {"value": raw_constraint}
+                elif isinstance(raw_constraint, dict):
+                    constraint = raw_constraint
+                else:
+                    constraint = {}
+
                 expected_value = constraint.get("value", "any")
+                if expected_value == "any":
+                    suggested_fix = f'.header("{required_header}", notNullValue())'
+                else:
+                    suggested_fix = f'.header("{required_header}", equalTo("{expected_value}"))'
                 
                 report.add_inconsistency(Inconsistency(
                     type=InconsistencyType.MISSING_VALIDATION,
@@ -430,7 +441,7 @@ class InconsistencyDetector:
                     oracle_expectation=constraint,
                     code_implementation=None,
                     recommendation=f"Add header validation for '{required_header}'",
-                    suggested_fix=f'.header("{required_header}", equalTo("{expected_value}"))'
+                    suggested_fix=suggested_fix
                 ))
             
             # Check Gherkin

@@ -1,0 +1,13 @@
+{
+  "name": "jsonplaceholder_rest_api_c75",
+  "description": "JSONPlaceholder REST API at 75% documentation completeness",
+  "collection_path": "jsonplaceholder/collection.json",
+  "completeness_level": 0.75,
+  "num_endpoints": 30,
+  "domains": [
+    "content_management",
+    "rest_crud",
+    "user_management"
+  ],
+  "created_at": "2025-12-12T05:50:17.405517"
+}

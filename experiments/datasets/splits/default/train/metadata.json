@@ -1,0 +1,27 @@
+{
+  "split_id": "4551d40f-b107-4ce8-8bd3-ca04a8e07c28",
+  "split_type": "train",
+  "split_ratio": 0.8888888888888888,
+  "total_samples": 8,
+  "num_samples": 8,
+  "collections_included": [
+    "httpbin_testing_api",
+    "jsonplaceholder_rest_api",
+    "reqres_users_api"
+  ],
+  "completeness_levels": [
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "domains": [
+    "unknown"
+  ],
+  "stratify_by": [
+    "domain",
+    "completeness_level"
+  ],
+  "random_seed": 42,
+  "created_at": "2025-12-12T05:50:17.425579"
+}

@@ -1,0 +1,60 @@
+{
+  "endpoints": [
+    {
+      "id": "d01e37b7-b5e4-4b82-bae6-3cab505ca385",
+      "name": "List users",
+      "method": "GET",
+      "url": "https://reqres.in/api/users",
+      "description": "Get paginated",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "70944494-5151-4f45-8e9e-a0ffb4525934",
+      "name": "Get single user",
+      "method": "GET",
+      "url": "https://reqres.in/api/users/{id}",
+      "description": "Get a single",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "0ba89992-ccd0-47f0-afb2-fb24e0d61663",
+      "name": "Create user",
+      "method": "POST",
+      "url": "https://reqres.in/api/users",
+      "description": "Create a",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "71a0cf75-1421-4163-830c-d8debee7dd06",
+      "name": "Update user",
+      "method": "PUT",
+      "url": "https://reqres.in/api/users/{id}",
+      "description": "Update an",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "5cc4d870-6152-42f4-a869-1ca3e3bc18bb",
+      "name": "Delete user",
+      "method": "DELETE",
+      "url": "https://reqres.in/api/users/{id}",
+      "description": "Delete",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "49fb6719-00e0-49bf-af79-39a44b3b4cbf",
+      "name": "Register user",
+      "method": "POST",
+      "url": "https://reqres.in/api/register",
+      "description": "Register a",
+      "documentation_completeness": 0.5
+    },
+    {
+      "id": "62a81474-2b95-4d6e-9bc4-d5da89e8df24",
+      "name": "Login",
+      "method": "POST",
+      "url": "https://reqres.in/api/login",
+      "description": "Login",
+      "documentation_completeness": 0.5
+    }
+  ]
+}

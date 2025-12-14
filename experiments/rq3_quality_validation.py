@@ -55,6 +55,13 @@ class QualityExperimentConfig:
     
     def to_dict(self) -> Dict:
         """Convert config to dictionary."""
+        thresholds = {
+            "min_correctness_score": self.min_correctness_score,
+            "min_readability_score": self.min_readability_score,
+            "min_maintainability_score": self.min_maintainability_score,
+            "max_cyclomatic_complexity": self.max_cyclomatic_complexity,
+            "max_code_duplication": self.max_code_duplication,
+        }
         return {
             "experiment_id": self.experiment_id,
             "name": self.name,
@@ -62,13 +69,9 @@ class QualityExperimentConfig:
             "llm_models": self.llm_models,
             "num_endpoints": self.num_endpoints,
             "test_frameworks": self.test_frameworks,
-            "quality_thresholds": {
-                "min_correctness_score": self.min_correctness_score,
-                "min_readability_score": self.min_readability_score,
-                "min_maintainability_score": self.min_maintainability_score,
-                "max_cyclomatic_complexity": self.max_cyclomatic_complexity,
-                "max_code_duplication": self.max_code_duplication
-            },
+            # Backward/forward compatible naming
+            "thresholds": thresholds,
+            "quality_thresholds": thresholds,
             "output_dir": str(self.output_dir)
         }
 
@@ -117,6 +120,34 @@ class EndpointQualityResult:
             self.readability_score * 0.3 +
             self.maintainability_score * 0.3
         )
+
+    def check_quality_threshold(
+        self,
+        min_correctness: float,
+        min_readability: float,
+        min_maintainability: float,
+        max_cyclomatic_complexity: Optional[float] = None,
+        max_code_duplication: Optional[float] = None,
+    ) -> bool:
+        """Update and return whether this result meets quality thresholds."""
+        meets = (
+            self.correctness_score >= min_correctness and
+            self.readability_score >= min_readability and
+            self.maintainability_score >= min_maintainability
+        )
+
+        if max_cyclomatic_complexity is not None and self.cyclomatic_complexity:
+            meets = meets and (self.cyclomatic_complexity <= max_cyclomatic_complexity)
+
+        if max_code_duplication is not None and self.code_duplication_ratio:
+            meets = meets and (self.code_duplication_ratio <= max_code_duplication)
+
+        # If there are known hard failures, it can't pass the gate.
+        if self.has_compilation_errors or self.error_message:
+            meets = False
+
+        self.meets_quality_threshold = meets
+        return meets
     
     def to_dict(self) -> Dict:
         """Convert result to dictionary."""
@@ -124,6 +155,11 @@ class EndpointQualityResult:
             "endpoint_id": str(self.endpoint_id),
             "endpoint_name": self.endpoint_name,
             "llm_model": self.llm_model,
+            # Backward-compatible flat keys
+            "correctness_score": self.correctness_score,
+            "readability_score": self.readability_score,
+            "maintainability_score": self.maintainability_score,
+            "overall_quality_score": self.overall_quality_score,
             "quality_scores": {
                 "correctness": self.correctness_score,
                 "readability": self.readability_score,
@@ -195,19 +231,38 @@ class QualityExperimentReport:
             complexities = [r.cyclomatic_complexity for r in results if r.cyclomatic_complexity > 0]
             duplications = [r.code_duplication_ratio for r in results if r.code_duplication_ratio >= 0]
             
+            correctness_mean = statistics.mean(correctness_scores)
+            correctness_std = statistics.stdev(correctness_scores) if len(correctness_scores) > 1 else 0.0
+            readability_mean = statistics.mean(readability_scores)
+            readability_std = statistics.stdev(readability_scores) if len(readability_scores) > 1 else 0.0
+            maintainability_mean = statistics.mean(maintainability_scores)
+            maintainability_std = statistics.stdev(maintainability_scores) if len(maintainability_scores) > 1 else 0.0
+            overall_mean = statistics.mean(overall_scores)
+            overall_std = statistics.stdev(overall_scores) if len(overall_scores) > 1 else 0.0
+
             self.aggregate_metrics[llm_model] = {
-                "correctness_mean": statistics.mean(correctness_scores),
-                "correctness_std": statistics.stdev(correctness_scores) if len(correctness_scores) > 1 else 0.0,
-                "readability_mean": statistics.mean(readability_scores),
-                "readability_std": statistics.stdev(readability_scores) if len(readability_scores) > 1 else 0.0,
-                "maintainability_mean": statistics.mean(maintainability_scores),
-                "maintainability_std": statistics.stdev(maintainability_scores) if len(maintainability_scores) > 1 else 0.0,
-                "overall_mean": statistics.mean(overall_scores),
-                "overall_std": statistics.stdev(overall_scores) if len(overall_scores) > 1 else 0.0,
+                # Preferred keys used by reporting/tests
+                "mean_correctness_score": correctness_mean,
+                "std_correctness_score": correctness_std,
+                "mean_readability_score": readability_mean,
+                "std_readability_score": readability_std,
+                "mean_maintainability_score": maintainability_mean,
+                "std_maintainability_score": maintainability_std,
+                "mean_overall_quality": overall_mean,
+                "std_overall_quality": overall_std,
                 "avg_complexity": statistics.mean(complexities) if complexities else 0.0,
                 "avg_duplication": statistics.mean(duplications) if duplications else 0.0,
                 "avg_code_smells": statistics.mean([r.code_smells_count for r in results]),
-                "pass_rate": sum(1 for r in results if r.meets_quality_threshold) / len(results)
+                "pass_rate": sum(1 for r in results if r.meets_quality_threshold) / len(results),
+                # Backward-compatible aliases
+                "correctness_mean": correctness_mean,
+                "correctness_std": correctness_std,
+                "readability_mean": readability_mean,
+                "readability_std": readability_std,
+                "maintainability_mean": maintainability_mean,
+                "maintainability_std": maintainability_std,
+                "overall_mean": overall_mean,
+                "overall_std": overall_std,
             }
             
             # Count quality gates
@@ -220,6 +275,10 @@ class QualityExperimentReport:
         llm_scores = [(llm, metrics["overall_mean"]) for llm, metrics in self.aggregate_metrics.items()]
         llm_scores.sort(key=lambda x: x[1], reverse=True)
         self.llm_rankings = {llm: rank + 1 for rank, (llm, _) in enumerate(llm_scores)}
+
+    def calculate_aggregate_metrics(self):
+        """Backward-compatible alias for aggregate calculations."""
+        self.calculate_aggregates()
     
     def to_dict(self) -> Dict:
         """Convert report to dictionary."""

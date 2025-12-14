@@ -120,11 +120,19 @@ class RQ345Results:
         """Get list of LLM models analyzed."""
         models = set()
         if self.rq3_report:
-            models.update(self.rq3_report.aggregate_metrics.keys())
+            # Prefer aggregate metrics when available, otherwise fall back to rankings.
+            if getattr(self.rq3_report, "aggregate_metrics", None):
+                models.update(self.rq3_report.aggregate_metrics.keys())
+            if getattr(self.rq3_report, "llm_rankings", None):
+                models.update(self.rq3_report.llm_rankings.keys())
         if self.rq4_report:
-            models.update([r.llm_model for r in self.rq4_report.model_results])
+            if getattr(self.rq4_report, "model_results", None):
+                models.update([r.llm_model for r in self.rq4_report.model_results])
+            if getattr(self.rq4_report, "overall_rankings", None):
+                models.update(self.rq4_report.overall_rankings.keys())
         if self.rq5_report:
-            models.update([r.llm_model for r in self.rq5_report.model_results])
+            if getattr(self.rq5_report, "model_results", None):
+                models.update([r.llm_model for r in self.rq5_report.model_results])
         return sorted(list(models))
     
     def to_dict(self) -> Dict:

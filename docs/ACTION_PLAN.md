@@ -1,6 +1,47 @@
 # Plan d'Action - Contract Test Generation from API Documentation
 
-**Auteur** : Aurel IKAMA HONEY
+**Auteur** : Aurel IKAMA HONEY  
+**Dernière mise à jour** : 12 Décembre 2025
+
+---
+
+## 📊 État d'Avancement Global
+
+| Phase | Statut | Progression | Période |
+|-------|--------|-------------|---------|
+| Phase 1 - Setup Initial | ✅ Complète | 100% | Semaine 1 |
+| Phase 2 - Parser Bruno | ✅ Complète | 100% | Semaine 2 |
+| Phase 3 - Contexte Partagé | ✅ Complète | 100% | Semaine 3 |
+| Phase 4 - Multi-Agent System | ✅ Complète | 100% | Semaines 4-8 |
+| Phase 5 - Validation RQ1-RQ5 | ✅ Complète | 100% | Semaines 9-10 |
+| Phase 6.1 - Datasets | ✅ Complète | 100% | Semaine 11 |
+| Phase 6.2-6.3 - Expériences | 🔄 En cours | 0% | Semaine 12 |
+| Phase 7 - Monitoring | 📋 Planifié | 0% | Semaine 13 |
+| Phase 8 - Tests & Docs | 📋 Planifié | 0% | Semaine 14 |
+| Phase 9 - Optimisation | 📋 Planifié | 0% | Semaine 15 |
+| Phase 10 - Publication | 📋 Planifié | 0% | Semaine 16 |
+
+**Progression totale** : 60% (6/10 phases complétées)
+
+---
+
+## 🎯 Réalisations Clés
+
+### Phase 6.1 - Datasets (✅ Complétée - 12 Décembre 2025)
+- **46 endpoints** d'APIs réelles (JSONPlaceholder, ReqRes, HTTPBin)
+- **12 datasets** avec 4 niveaux de complétude (100%, 75%, 50%, 25%)
+- **46 oracles** auto-générés avec validation
+- **Splits train/test** : 8/4 datasets (70/30 stratifié)
+- **Validation** : 100% des datasets validés
+
+### Statistiques Projet
+- **Lignes de code production** : ~20,000+
+- **Lignes de tests** : ~10,000+
+- **Modules créés** : 50+
+- **Commits** : 100+
+- **Documentation** : 15+ fichiers markdown
+
+---
 
 ## Phase 1 : Setup Initial (Semaine 1)
 
@@ -1169,11 +1210,59 @@ LaTeX/CSV/Markdown/HTML/Charts
 
 ## Phase 6 : Expérimentations (Semaine 11-12)
 
-### 6.1 Datasets
-- [ ] Collecter collections Bruno variées
-- [ ] Créer documentation incomplète (RQ5)
-- [ ] Annoter ground truth
-- [ ] Diviser train/test sets
+### 6.1 Datasets ✅ **COMPLÉTÉ - 12 Décembre 2025**
+- [x] Collecter collections Bruno variées (3 APIs publiques)
+- [x] Créer documentation incomplète (RQ5) - 4 niveaux
+- [x] Annoter ground truth (46 oracles)
+- [x] Diviser train/test sets (70/30, stratifié)
+
+**Résultats Phase 6.1:**
+- ✅ **3 Collections API crawlées:**
+  - JSONPlaceholder REST API: 30 endpoints (CRUD sur 6 ressources)
+  - ReqRes Users API: 7 endpoints (utilisateurs + authentification)
+  - HTTPBin Testing API: 9 endpoints (tests HTTP)
+- ✅ **46 endpoints totaux** documentés en format Bruno
+- ✅ **4 niveaux de complétude** (100%, 75%, 50%, 25%) = **12 datasets**
+- ✅ **46 oracles auto-générés** (1 par endpoint, confidence 0.8)
+- ✅ **Splits train/test:** 8 datasets train (70%), 4 datasets test (30%)
+- ✅ **Stratification:** Par domaine, niveau de complétude
+- ✅ **Validation:** 100% des datasets passent les contrôles qualité
+
+**Modules créés:**
+- ✅ `experiments/collection_crawler.py` (450 lignes) - Crawl 3 APIs publiques
+- ✅ `experiments/create_datasets.py` (560 lignes) - Génération variants
+- ✅ `experiments/dataset_splitter.py` (550 lignes) - Splits stratifiés
+- ✅ `experiments/dataset_validator.py` (593 lignes) - Validation qualité
+- ✅ `experiments/dataset_exporter.py` (450 lignes) - Exports (ZIP, CSV, JSON)
+- ✅ `scripts/run_phase_6.1.py` (503 lignes) - Orchestration workflow
+- ✅ `experiments/datasets/README.md` (640 lignes) - Documentation complète
+
+**Structure finale:**
+```
+experiments/datasets/
+├── variants/                    # 12 datasets (3 collections × 4 complétudes)
+│   ├── httpbin_testing_api/
+│   ├── jsonplaceholder_rest_api/
+│   └── reqres_users_api/
+├── splits/default/              # Train/test (8/4 datasets)
+│   ├── train/
+│   └── test/
+├── ground_truths/               # 3 fichiers GT (46 oracles totaux)
+├── validation/                  # Rapports HTML
+└── exports/                     # Catalogues et métadonnées
+```
+
+**Documentation:**
+- ✅ `docs/PHASE_6.1_DATASETS.md` (900+ lignes) - Spécification complète
+- ✅ Tableaux détaillés des 46 endpoints avec sources
+- ✅ Distribution train/test documentée
+- ✅ Métriques qualité et validation
+
+**Workflow automatisé:**
+```bash
+# Workflow complet (7 étapes, 100% succès)
+python scripts/run_phase_6.1.py --mode full
+```
 
 ### 6.2 Notebooks Jupyter
 - [ ] `rq1_oracle_analysis.ipynb`
@@ -1184,7 +1273,7 @@ LaTeX/CSV/Markdown/HTML/Charts
 
 ### 6.3 Expériences
 - [ ] Exécuter pour chaque LLM (GPT-4, Claude, Gemini, Mistral, Llama)
-- [ ] Varier complétude documentation (100%, 75%, 50%, 25%)
+- [ ] Varier complétude documentation (100%, 75%, 50%, 25%) - **Datasets prêts ✅**
 - [ ] Collecter métriques (précision, recall, F1, temps)
 - [ ] Analyse statistique (moyennes, écart-types, tests)
 
@@ -1254,7 +1343,8 @@ LaTeX/CSV/Markdown/HTML/Charts
 **Phase 4** : Multi-Agent System (BaseAgent + 4 agents + integration) ✅
 **Phase 5.0-5.2** : Agent enhancements + Métriques RQ1-RQ5 + Validation RQ1 ✅
 **Phase 5.5** : Revue Qualité, Sécurité, Cohérence et Bonnes Pratiques ✅
-**Phase 6** : Expérimentations + notebooks (à venir)
+**Phase 6.1** : Datasets complets (3 APIs, 46 endpoints, 12 variants, splits train/test) ✅
+**Phase 6.2-6.3** : Notebooks Jupyter + Expérimentations (à venir)
 **Phase 7** : Monitoring + reporting
 **Phase 8** : Tests complets + documentation
 **Phase 9** : Optimisation + déploiement
@@ -1271,6 +1361,40 @@ LaTeX/CSV/Markdown/HTML/Charts
 4. ✅ Agent Inductor (Phase 4.2)
 5. ✅ Agent Oracle (Phase 4.3)
 6. ✅ Agent Contractor (Phase 4.4)
+7. ✅ Agent Runner (Phase 4.5)
+8. ✅ Integration E2E (Phase 4.6)
+9. ✅ RQ1-RQ5 Validation Modules (Phase 5)
+10. ✅ Datasets Phase 6.1 (46 endpoints, 12 variants, splits)
+11. Notebooks Jupyter (Phase 6.2)
+12. Exécution expérimentations (Phase 6.3)
+13. Analyse statistique résultats
+14. Publication article
+
+### Important
+15. ✅ Revue qualité et sécurité (Phase 5.5)
+16. Tests unitaires (coverage > 80%)
+17. Monitoring Prometheus/Grafana
+18. MLflow tracking
+19. Documentation Sphinx complète
+20. CI/CD GitHub Actions
+
+### Nice-to-have
+21. Optimisation performance (profiling, caching)
+22. Support nouveaux frameworks tests (JUnit, Pytest)
+23. UI pour visualisation résultats
+24. Export multi-formats (LaTeX, PDF, HTML)
+
+---
+
+## Timeline Révisée (Décembre 2025)
+
+- **Semaines 1-10** : Phases 1-5 ✅ **COMPLÉTÉES**
+- **Semaine 11** : Phase 6.1 (Datasets) ✅ **COMPLÉTÉE - 12 Décembre 2025**
+- **Semaine 12** : Phase 6.2-6.3 (Notebooks + Expériences)
+- **Semaine 13** : Phase 7 (Monitoring + Reporting)
+- **Semaine 14** : Phase 8 (Tests + Documentation)
+- **Semaine 15** : Phase 9 (Optimisation + Déploiement)
+- **Semaine 16** : Phase 10 (Analyse finale + Publication)
 7. ✅ Agent Runner (Phase 4.5)
 8. ✅ Integration & E2E tests (Phase 4.6)
 9. ✅ Métriques RQ1-RQ5 (Phase 5.1)

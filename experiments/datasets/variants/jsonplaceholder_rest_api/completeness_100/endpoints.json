@@ -1,0 +1,244 @@
+{
+  "endpoints": [
+    {
+      "id": "b368d8f4-8b43-465f-af92-036e2993f873",
+      "name": "Get all posts",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/posts",
+      "description": "Retrieve all Blog posts",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "dce45df6-b0a1-4fc8-9ef2-9fbe153b1dce",
+      "name": "Get post by ID",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/posts/{id}",
+      "description": "Retrieve a single post by ID",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "c7b98d34-899f-4153-a53a-56ab07981b2b",
+      "name": "Create post",
+      "method": "POST",
+      "url": "https://jsonplaceholder.typicode.com/posts",
+      "description": "Create a new post",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "8535ba1d-f8c1-44df-af60-5bd578c74c72",
+      "name": "Update post",
+      "method": "PUT",
+      "url": "https://jsonplaceholder.typicode.com/posts/{id}",
+      "description": "Update an existing post",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "aadfa6c8-3e25-4457-982f-64e18ec5569d",
+      "name": "Delete post",
+      "method": "DELETE",
+      "url": "https://jsonplaceholder.typicode.com/posts/{id}",
+      "description": "Delete a post",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "fba6c0d3-2158-4632-a6a2-48ddb5215a13",
+      "name": "Get all comments",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/comments",
+      "description": "Retrieve all Post comments",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "2853f752-8b80-4726-bd88-f1ac31c715f4",
+      "name": "Get comment by ID",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/comments/{id}",
+      "description": "Retrieve a single comment by ID",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "2333ee47-bbf9-4f64-abaa-2e3f58c7db8f",
+      "name": "Create comment",
+      "method": "POST",
+      "url": "https://jsonplaceholder.typicode.com/comments",
+      "description": "Create a new comment",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "7da76015-40db-4eb5-8d1b-d68c56febaf2",
+      "name": "Update comment",
+      "method": "PUT",
+      "url": "https://jsonplaceholder.typicode.com/comments/{id}",
+      "description": "Update an existing comment",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "25592221-85b2-4865-a258-8e8d706ef786",
+      "name": "Delete comment",
+      "method": "DELETE",
+      "url": "https://jsonplaceholder.typicode.com/comments/{id}",
+      "description": "Delete a comment",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "c849a525-adf4-4a49-9d32-8cb7be69e9f9",
+      "name": "Get all albums",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/albums",
+      "description": "Retrieve all Photo albums",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "f036caa3-462d-4ab7-bcd6-916d9c46bf14",
+      "name": "Get album by ID",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/albums/{id}",
+      "description": "Retrieve a single album by ID",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "00dc7ac7-643c-4cee-82c5-f51108f2274f",
+      "name": "Create album",
+      "method": "POST",
+      "url": "https://jsonplaceholder.typicode.com/albums",
+      "description": "Create a new album",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "0298b593-91cd-40bc-ad4b-7868621c4c41",
+      "name": "Update album",
+      "method": "PUT",
+      "url": "https://jsonplaceholder.typicode.com/albums/{id}",
+      "description": "Update an existing album",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "05e66b47-1de9-4891-bbbc-a5d16983a799",
+      "name": "Delete album",
+      "method": "DELETE",
+      "url": "https://jsonplaceholder.typicode.com/albums/{id}",
+      "description": "Delete a album",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "947fdca1-4c7c-441f-bdb8-036364e33150",
+      "name": "Get all photos",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/photos",
+      "description": "Retrieve all Photos",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "4e2e5ef4-02e9-48af-95bf-dd093bcb5df0",
+      "name": "Get photo by ID",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/photos/{id}",
+      "description": "Retrieve a single photo by ID",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "fd0a8544-36c0-4e9d-8026-1ede6043b4e7",
+      "name": "Create photo",
+      "method": "POST",
+      "url": "https://jsonplaceholder.typicode.com/photos",
+      "description": "Create a new photo",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "700a8b31-d22b-4d4c-905e-067cb13f29ed",
+      "name": "Update photo",
+      "method": "PUT",
+      "url": "https://jsonplaceholder.typicode.com/photos/{id}",
+      "description": "Update an existing photo",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "58ee52f8-2e23-4482-8628-e4b5fa856b73",
+      "name": "Delete photo",
+      "method": "DELETE",
+      "url": "https://jsonplaceholder.typicode.com/photos/{id}",
+      "description": "Delete a photo",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "841de4cd-b69c-4340-8ab4-b6fd1dec2217",
+      "name": "Get all todos",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/todos",
+      "description": "Retrieve all Todo items",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "8b39b563-85c4-4ac6-bae0-b69df342fe5a",
+      "name": "Get todo by ID",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/todos/{id}",
+      "description": "Retrieve a single todo by ID",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "6e8e8229-217c-4ce2-81bf-a9283687410e",
+      "name": "Create todo",
+      "method": "POST",
+      "url": "https://jsonplaceholder.typicode.com/todos",
+      "description": "Create a new todo",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "9d17f269-adac-4d54-ae64-8daf6701c3d6",
+      "name": "Update todo",
+      "method": "PUT",
+      "url": "https://jsonplaceholder.typicode.com/todos/{id}",
+      "description": "Update an existing todo",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "fad4fa85-f8ac-4998-81db-319a2deda2b0",
+      "name": "Delete todo",
+      "method": "DELETE",
+      "url": "https://jsonplaceholder.typicode.com/todos/{id}",
+      "description": "Delete a todo",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "d147c5ca-eba6-479e-b2c7-704beace6263",
+      "name": "Get all users",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/users",
+      "description": "Retrieve all Users",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "8fe47b46-c73e-45d1-b5ae-4a6acfee8f90",
+      "name": "Get user by ID",
+      "method": "GET",
+      "url": "https://jsonplaceholder.typicode.com/users/{id}",
+      "description": "Retrieve a single user by ID",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "15f4fd37-dc8f-43a2-9873-f42f6dabb3da",
+      "name": "Create user",
+      "method": "POST",
+      "url": "https://jsonplaceholder.typicode.com/users",
+      "description": "Create a new user",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "965bea52-152b-4bbf-a6ff-700fc88bdeb5",
+      "name": "Update user",
+      "method": "PUT",
+      "url": "https://jsonplaceholder.typicode.com/users/{id}",
+      "description": "Update an existing user",
+      "documentation_completeness": 1.0
+    },
+    {
+      "id": "88ca3d5f-c699-4263-acdc-5b04a81fdddd",
+      "name": "Delete user",
+      "method": "DELETE",
+      "url": "https://jsonplaceholder.typicode.com/users/{id}",
+      "description": "Delete a user",
+      "documentation_completeness": 1.0
+    }
+  ]
+}

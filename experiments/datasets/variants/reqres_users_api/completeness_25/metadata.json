@@ -1,0 +1,13 @@
+{
+  "name": "reqres_users_api_c25",
+  "description": "ReqRes Users API at 25% documentation completeness",
+  "collection_path": "reqres/collection.json",
+  "completeness_level": 0.25,
+  "num_endpoints": 7,
+  "domains": [
+    "authentication",
+    "rest_crud",
+    "user_management"
+  ],
+  "created_at": "2025-12-12T05:50:17.410973"
+}

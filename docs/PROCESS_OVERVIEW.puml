@@ -1,0 +1,60 @@
+@startuml
+title Vue générale — Processus & méthodologie (Contract Test Generation from API Documentation)
+
+start
+
+partition "Entrées" {
+  :API documentation / collections (Bruno, etc.);
+  :Datasets (Phase 6.1 variants)\n(completeness 100/75/50/25%);
+}
+
+partition "Pré-traitement" {
+  :Parser (collections/docs) -> Contexts;
+  :Normalisation & enrichissement\n(endpoint contexts, schemas, params);
+  :Stockage contextuel (Shared Context)\n(session_id, endpoints);
+}
+
+partition "Configuration LLM" {
+  :Chargement config LLM\n(config/llm_config.yaml);
+  if (ENABLE_CLOUD_MODELS=true ?) then (oui)
+    :Inclure modèles cloud;
+  else (non)
+    :Modèles locaux (Ollama)\n(mistral/llama31/llama32);
+  endif
+}
+
+partition "Génération (Agents)" {
+  :OracleAgent (derive_oracles)\nà partir des contexts;
+  :Stockage des oracles\n(oracle_ids);
+  :ContractorAgent (generate_tests)\nà partir des oracles;
+  :Stockage des tests générés;
+}
+
+partition "Validation & Métriques" {
+  :RQ1 — Oracle validation\n(precision/recall/F1, completeness);
+  :RQ2 — Consistency\n(oracle <-> code incohérences);
+  :RQ3 — Test quality\n(correctness/readability/maintainability);
+}
+
+partition "Expériences" {
+  :RQ4 — Comparaison multi-LLM\n(agrégation RQ1–RQ3 + perf/cost);
+  :RQ5 — Impact de la complétude\n(comparaison par niveaux);
+}
+
+partition "Sorties persistées (réel uniquement)" {
+  :Écriture des rapports JSON\nexperiments/results/rq1..rq5/rq*_report_*.json;
+}
+
+partition "Analyse (Notebooks Phase 6.2)" {
+  :Notebooks chargent\nle dernier report JSON (no mock);
+  :Tables/plots + exports;
+}
+
+partition "Boucle d'amélioration" {
+  :Analyse des erreurs\n(parse JSON LLM, fallback, incohérences);
+  :Ajustements prompts/agents\n+ correctifs validation;
+  :Relancer expériences;
+}
+
+stop
+@enduml
