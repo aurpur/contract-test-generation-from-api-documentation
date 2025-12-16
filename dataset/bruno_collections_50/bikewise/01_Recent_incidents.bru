@@ -1,0 +1,16 @@
+meta {
+  name: Recent incidents
+  type: http
+}
+
+get {
+  url: https://bikewise.org/api/v2/incidents?page=1&per_page=5
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for BikeWise
+}

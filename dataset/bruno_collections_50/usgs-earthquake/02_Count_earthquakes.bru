@@ -1,0 +1,16 @@
+meta {
+  name: Count earthquakes
+  type: http
+}
+
+get {
+  url: https://earthquake.usgs.gov/fdsnws/event/1/count?format=geojson
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for USGS Earthquake
+}

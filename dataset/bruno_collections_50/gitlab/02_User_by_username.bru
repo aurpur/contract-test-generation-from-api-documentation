@@ -1,0 +1,17 @@
+meta {
+  name: User by username
+  type: http
+}
+
+get {
+  url: https://gitlab.com/api/v4/users?username=gitlab
+}
+
+headers {
+  Accept: application/json
+  PRIVATE-TOKEN: {{GITLAB_TOKEN}}
+}
+
+docs {
+  Example request for GitLab API
+}

@@ -1,0 +1,16 @@
+meta {
+  name: APOD
+  type: http
+}
+
+get {
+  url: https://api.nasa.gov/planetary/apod?api_key={{NASA_API_KEY}}
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for NASA APIs
+}

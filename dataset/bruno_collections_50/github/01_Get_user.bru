@@ -1,0 +1,17 @@
+meta {
+  name: Get user
+  type: http
+}
+
+get {
+  url: https://api.github.com/users/octocat
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{GITHUB_TOKEN}}
+}
+
+docs {
+  Example request for GitHub REST API
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Locations near point
+  type: http
+}
+
+get {
+  url: https://bikewise.org/api/v2/locations?proximity=45.52,-122.67&proximity_square=10
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for BikeWise
+}

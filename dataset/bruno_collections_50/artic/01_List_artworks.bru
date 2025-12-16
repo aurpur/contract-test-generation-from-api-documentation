@@ -1,0 +1,16 @@
+meta {
+  name: List artworks
+  type: http
+}
+
+get {
+  url: https://api.artic.edu/api/v1/artworks?limit=5
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Art Institute of Chicago
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Search breweries
+  type: http
+}
+
+get {
+  url: https://api.openbrewerydb.org/v1/breweries/search?query=dog
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Open Brewery DB
+}

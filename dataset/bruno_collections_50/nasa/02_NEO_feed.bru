@@ -1,0 +1,16 @@
+meta {
+  name: NEO feed
+  type: http
+}
+
+get {
+  url: https://api.nasa.gov/neo/rest/v1/feed?start_date=2025-12-10&end_date=2025-12-11&api_key={{NASA_API_KEY}}
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for NASA APIs
+}

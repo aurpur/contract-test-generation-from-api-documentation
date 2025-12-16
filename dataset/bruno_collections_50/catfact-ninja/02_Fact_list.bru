@@ -1,0 +1,16 @@
+meta {
+  name: Fact list
+  type: http
+}
+
+get {
+  url: https://catfact.ninja/facts?limit=5
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Cat Facts
+}

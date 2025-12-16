@@ -1,0 +1,16 @@
+meta {
+  name: Search products
+  type: http
+}
+
+get {
+  url: https://world.openfoodfacts.org/api/v2/search?categories_tags=en:beverages&page_size=5
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Open Food Facts
+}

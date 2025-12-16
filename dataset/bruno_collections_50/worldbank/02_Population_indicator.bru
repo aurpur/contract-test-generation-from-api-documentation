@@ -1,0 +1,16 @@
+meta {
+  name: Population indicator
+  type: http
+}
+
+get {
+  url: https://api.worldbank.org/v2/country/fr/indicator/SP.POP.TOTL?format=json
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for World Bank
+}

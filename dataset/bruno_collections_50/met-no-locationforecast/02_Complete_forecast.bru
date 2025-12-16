@@ -1,0 +1,16 @@
+meta {
+  name: Complete forecast
+  type: http
+}
+
+get {
+  url: https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=59.91&lon=10.75
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for MET Norway Locationforecast
+}

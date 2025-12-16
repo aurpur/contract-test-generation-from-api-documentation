@@ -1,0 +1,16 @@
+meta {
+  name: Recent earthquakes
+  type: http
+}
+
+get {
+  url: https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=5
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for USGS Earthquake
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Search by title
+  type: http
+}
+
+get {
+  url: https://librivox.org/api/feed/audiobooks/?format=json&title=Sherlock
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for LibriVox
+}

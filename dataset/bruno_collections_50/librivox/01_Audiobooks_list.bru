@@ -1,0 +1,16 @@
+meta {
+  name: Audiobooks list
+  type: http
+}
+
+get {
+  url: https://librivox.org/api/feed/audiobooks/?format=json&limit=5
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for LibriVox
+}

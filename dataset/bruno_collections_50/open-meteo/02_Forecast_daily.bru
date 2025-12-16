@@ -1,0 +1,16 @@
+meta {
+  name: Forecast daily
+  type: http
+}
+
+get {
+  url: https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.0060&daily=temperature_2m_max,temperature_2m_min
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Open-Meteo
+}

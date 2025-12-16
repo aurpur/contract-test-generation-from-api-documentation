@@ -1,0 +1,17 @@
+meta {
+  name: Search projects
+  type: http
+}
+
+get {
+  url: https://gitlab.com/api/v4/projects?search=gitlab&simple=true&per_page=5
+}
+
+headers {
+  Accept: application/json
+  PRIVATE-TOKEN: {{GITLAB_TOKEN}}
+}
+
+docs {
+  Example request for GitLab API
+}

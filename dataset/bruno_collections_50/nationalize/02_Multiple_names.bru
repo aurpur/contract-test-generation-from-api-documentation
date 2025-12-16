@@ -1,0 +1,16 @@
+meta {
+  name: Multiple names
+  type: http
+}
+
+get {
+  url: https://api.nationalize.io/?name[]=luc&name[]=maria
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Nationalize
+}

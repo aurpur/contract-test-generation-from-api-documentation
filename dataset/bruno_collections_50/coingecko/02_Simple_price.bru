@@ -1,0 +1,16 @@
+meta {
+  name: Simple price
+  type: http
+}
+
+get {
+  url: https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for CoinGecko
+}

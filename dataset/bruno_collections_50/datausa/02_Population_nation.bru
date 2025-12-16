@@ -1,0 +1,16 @@
+meta {
+  name: Population nation
+  type: http
+}
+
+get {
+  url: https://datausa.io/api/?drilldowns=Nation&measures=Population
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Data USA
+}

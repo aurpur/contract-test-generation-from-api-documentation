@@ -1,0 +1,20 @@
+meta {
+  name: Recent questions
+  type: http
+}
+
+get {
+  url: https://api.stackexchange.com/2.3/questions?order=desc&sort=activity&site=stackoverflow&pagesize=5
+}
+
+params {
+  key: {{STACKEXCHANGE_KEY}}
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for StackExchange API
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Multiple names
+  type: http
+}
+
+get {
+  url: https://api.agify.io/?name[]=anna&name[]=john
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Agify
+}

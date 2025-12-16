@@ -1,0 +1,16 @@
+meta {
+  name: Search books
+  type: http
+}
+
+get {
+  url: https://openlibrary.org/search.json?q=harry%20potter
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for Open Library
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Popular tags
+  type: http
+}
+
+get {
+  url: https://api.stackexchange.com/2.3/tags?order=desc&sort=popular&site=stackoverflow&pagesize=5
+}
+
+params {
+  key: {{STACKEXCHANGE_KEY}}
+}
+
+headers {
+  Accept: application/json
+}
+
+docs {
+  Example request for StackExchange API
+}
