@@ -16,6 +16,7 @@ from loguru import logger
 from .bruno_models import (
     BrunoCollection,
     BrunoItem,
+    BrunoEnvironment,
     BrunoRequest,
     BrunoHeader,
     BrunoParam,
@@ -129,6 +130,43 @@ class BrunoParser:
             
         except Exception as e:
             raise ValueError(f"Failed to parse .bru file: {e}")
+
+    def parse_environment_bru_file(self, bru_path: Union[str, Path]) -> BrunoEnvironment:
+        """Parse a Bruno environment .bru file.
+
+        Expected structure (minimal):
+        meta { name: Test }
+        vars { KEY: VALUE }
+        """
+        bru_path = Path(bru_path)
+
+        if not bru_path.exists():
+            raise FileNotFoundError(f".bru file not found: {bru_path}")
+
+        self.logger.info(f"Parsing environment .bru file: {bru_path}")
+
+        try:
+            content = bru_path.read_text(encoding="utf-8")
+            sections = self._extract_sections(content)
+
+            meta = sections.get("meta", {})
+            env_name = meta.get("name", bru_path.stem)
+
+            variables: Dict[str, str] = {}
+            vars_section = sections.get("vars", {})
+            if isinstance(vars_section, dict):
+                variables = {str(k): str(v) for k, v in vars_section.items()}
+
+            env = BrunoEnvironment(name=env_name, variables=variables)
+            self.logger.success(f"✓ Parsed environment '{env.name}'")
+            return env
+        except Exception as e:
+            raise ValueError(f"Failed to parse environment .bru file: {e}")
+
+    @staticmethod
+    def _is_environment_file(path: Path) -> bool:
+        """Return True if the .bru file is an environment definition."""
+        return "environments" in path.parts
     
     def parse_bru_folder(self, folder_path: Union[str, Path]) -> BrunoParseResult:
         """
@@ -156,19 +194,32 @@ class BrunoParser:
         if not bru_files:
             self.logger.warning(f"No .bru files found in {folder_path}")
         
-        items = []
-        for bru_file in bru_files:
+        environments: List[BrunoEnvironment] = []
+        items: List[BrunoItem] = []
+
+        request_files = [p for p in bru_files if not self._is_environment_file(p)]
+        environment_files = [p for p in bru_files if self._is_environment_file(p)]
+
+        for bru_file in request_files:
             try:
                 item = self.parse_bru_file(bru_file)
                 items.append(item)
             except Exception as e:
                 self.logger.error(f"Failed to parse {bru_file}: {e}")
+
+        for env_file in environment_files:
+            try:
+                env = self.parse_environment_bru_file(env_file)
+                environments.append(env)
+            except Exception as e:
+                self.logger.error(f"Failed to parse environment {env_file}: {e}")
         
         # Create a collection from the parsed items
         collection = BrunoCollection(
             name=folder_path.name,
             version="1",
             items=items,
+            environments=environments,
             brunoConfig=BrunoConfig(
                 version="1",
                 name=folder_path.name,
@@ -308,22 +359,54 @@ class BrunoParser:
         return item
     
     def _extract_sections(self, content: str) -> Dict[str, Any]:
-        """Extract sections from .bru file content."""
-        sections = {}
-        
-        # Pattern to match sections: name { content }
-        section_pattern = r'(\w+(?::\w+)?)\s*\{([^}]*)\}'
-        
-        matches = re.finditer(section_pattern, content, re.MULTILINE | re.DOTALL)
-        
-        for match in matches:
-            section_name = match.group(1).strip()
-            section_content = match.group(2).strip()
-            
+        """Extract sections from .bru file content.
+
+        Bruno .bru files are composed of top-level sections like:
+
+        meta { ... }
+        get { ... }
+        headers { ... }
+        body:json { ... }
+
+        Section bodies may contain braces (e.g., JSON bodies or {{VARS}} templates).
+        This implementation parses sections using balanced braces anchored at line start.
+        """
+        sections: Dict[str, Any] = {}
+
+        # Match only real section headers (start of line), to avoid picking up JSON keys.
+        header_re = re.compile(r'^[ \t]*(\w+(?::\w+)?)\s*\{', re.MULTILINE)
+
+        idx = 0
+        while True:
+            m = header_re.search(content, idx)
+            if not m:
+                break
+
+            section_name = m.group(1).strip()
+            body_start = m.end()
+
+            depth = 1
+            j = body_start
+            while j < len(content) and depth > 0:
+                ch = content[j]
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                j += 1
+
+            if depth != 0:
+                # Malformed .bru (unbalanced braces). Store the remainder as raw.
+                section_content = content[body_start:].strip()
+                idx = len(content)
+            else:
+                # j is positioned right after the closing brace
+                section_content = content[body_start:j-1].strip()
+                idx = j
+
             # Parse key-value pairs or raw content
             if ':' in section_content and not section_name.startswith('body:'):
-                # Parse as key-value pairs
-                pairs = {}
+                pairs: Dict[str, str] = {}
                 for line in section_content.split('\n'):
                     line = line.strip()
                     if ':' in line and not line.startswith('//'):
@@ -331,9 +414,8 @@ class BrunoParser:
                         pairs[key.strip()] = value.strip()
                 sections[section_name] = pairs
             else:
-                # Store raw content for body sections
                 sections[section_name] = {'_raw_content': section_content}
-        
+
         return sections
     
     def _extract_metadata_optimized(self, collection: BrunoCollection) -> Dict[str, Any]:
