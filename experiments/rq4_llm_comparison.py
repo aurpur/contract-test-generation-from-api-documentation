@@ -317,12 +317,35 @@ class LLMComparisonExperimentReport:
     
     def to_dict(self) -> Dict:
         """Convert report to dictionary."""
+        by_model = {r.llm_model: r for r in self.model_results}
+
+        induction_best = self.best_for_oracle_quality
+        generation_best = self.best_for_code_quality
+        coherence_best = self.best_for_consistency
+
         return {
             "experiment_id": self.experiment_id,
             "config": self.config.to_dict(),
             "started_at": self.started_at.isoformat(),
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "model_results": [r.to_dict() for r in self.model_results],
+            "rq4_answer": {
+                "induction": {
+                    "metric": "oracle_f1",
+                    "best_model": induction_best,
+                    "best_score": by_model.get(induction_best).oracle_f1 if induction_best in by_model else None,
+                },
+                "generation": {
+                    "metric": "code_overall_quality",
+                    "best_model": generation_best,
+                    "best_score": by_model.get(generation_best).code_overall_quality if generation_best in by_model else None,
+                },
+                "coherence": {
+                    "metric": "coherence_score",
+                    "best_model": coherence_best,
+                    "best_score": by_model.get(coherence_best).coherence_score if coherence_best in by_model else None,
+                },
+            },
             "rankings": {
                 "overall": self.overall_rankings,
                 "oracle_quality": self.oracle_quality_rankings,

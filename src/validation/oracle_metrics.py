@@ -18,6 +18,7 @@ Date: December 11, 2025
 """
 from dataclasses import dataclass
 from datetime import datetime
+import json
 from typing import Any, Dict, List, Optional, Set, Tuple
 from uuid import UUID
 
@@ -345,13 +346,46 @@ class OracleMetricsCalculator:
         
         return aspects
     
-    def _flatten_schema(self, schema: Dict[str, Any], prefix: str) -> List[ValidationAspect]:
+    def _coerce_schema_dict(self, schema: Any) -> Optional[Dict[str, Any]]:
+        """Best-effort coercion of a schema payload to a dictionary.
+
+        Some pipelines may bypass Pydantic validation (e.g., model_construct) and
+        store `response_schema` as a JSON string. Metrics should be robust to that.
+        """
+
+        if schema is None:
+            return None
+        if isinstance(schema, dict):
+            return schema
+        if isinstance(schema, str):
+            raw = schema.strip()
+            if not raw:
+                return None
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                return None
+            return parsed if isinstance(parsed, dict) else None
+        return None
+
+    def _flatten_schema(self, schema: Any, prefix: str) -> List[ValidationAspect]:
         """Flatten nested schema into validation aspects."""
         aspects = []
-        
-        if "properties" in schema:
-            for field, field_schema in schema["properties"].items():
+
+        schema_dict = self._coerce_schema_dict(schema)
+        if not schema_dict:
+            return aspects
+
+        properties = schema_dict.get("properties")
+        if isinstance(properties, dict):
+            for field, field_schema in properties.items():
                 field_name = f"{prefix}.{field}" if prefix else field
+
+                # Some schemas may encode a field schema as a simple type string
+                if isinstance(field_schema, str):
+                    field_schema = {"type": field_schema}
+                if not isinstance(field_schema, dict):
+                    continue
                 
                 # Type validation
                 if "type" in field_schema:
@@ -464,19 +498,24 @@ class OracleMetricsCalculator:
         correct = len(generated_fields & expected_fields)
         return correct / len(generated_fields)
     
-    def _get_schema_fields(self, schema: Dict[str, Any]) -> Set[str]:
+    def _get_schema_fields(self, schema: Any) -> Set[str]:
         """Extract all field paths from schema."""
         fields = set()
-        
+
+        schema_dict = self._coerce_schema_dict(schema)
+        if not schema_dict:
+            return fields
+
         def traverse(obj: Dict[str, Any], prefix: str = ""):
-            if "properties" in obj:
-                for key, value in obj["properties"].items():
+            props = obj.get("properties")
+            if isinstance(props, dict):
+                for key, value in props.items():
                     field_path = f"{prefix}.{key}" if prefix else key
                     fields.add(field_path)
                     if isinstance(value, dict) and value.get("type") == "object":
                         traverse(value, field_path)
         
-        traverse(schema)
+        traverse(schema_dict)
         return fields
     
     def _calculate_business_rules_precision(

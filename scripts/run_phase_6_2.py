@@ -16,6 +16,7 @@ Notes:
 
 from __future__ import annotations
 
+import sys
 import argparse
 import asyncio
 import json
@@ -23,6 +24,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
+
+# Add project root to path so `import src...` works when running as a script
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.agents.base_agent import AgentConfig
 from src.agents.contractor import ContractorAgent
@@ -573,6 +578,14 @@ def _parse_args() -> argparse.Namespace:
         help="Model names as defined in config/llm_config.yaml (default: all available)",
     )
     parser.add_argument(
+        "--allow-cloud-models",
+        action="store_true",
+        help=(
+            "Allow non-Ollama providers (OpenAI/Anthropic/Google) when selecting models. "
+            "By default, Phase 6.2 uses only local Ollama models for reproducible, cost-free experiments."
+        ),
+    )
+    parser.add_argument(
         "--completeness",
         nargs="+",
         type=float,
@@ -596,9 +609,39 @@ def main() -> None:
     args = _parse_args()
     cfg = load_config()
 
-    models = args.models
-    if not models:
+    # Default behavior: Ollama-only models (local, reproducible, no API keys)
+    # Override with --allow-cloud-models if you explicitly want to include cloud providers.
+    if args.models:
+        models = list(args.models)
+    else:
         models = list(cfg.llm_models.keys())
+
+    if not args.allow_cloud_models:
+        # Filter to Ollama-only, and fail fast if user explicitly asked for a cloud model.
+        filtered: List[str] = []
+        non_ollama: List[str] = []
+        for name in models:
+            mcfg = cfg.llm_models.get(name)
+            if not mcfg:
+                continue
+            if getattr(mcfg, "provider", None) == "ollama":
+                filtered.append(name)
+            else:
+                non_ollama.append(name)
+
+        if args.models and non_ollama:
+            raise ValueError(
+                "Cloud models are not allowed for this run (add --allow-cloud-models to override). "
+                "Non-Ollama requested: " + ", ".join(sorted(set(non_ollama)))
+            )
+
+        models = filtered
+
+    if not models:
+        raise ValueError(
+            "No models selected. Ensure you have at least one Ollama model configured in config/llm_config.yaml "
+            "and available in your environment."
+        )
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -10,6 +10,7 @@ This agent is responsible for:
 Author: Aurel IKAMA HONEY
 """
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
@@ -285,12 +286,26 @@ class InductorAgent(BaseAgent):
             List of EndpointContext objects
         """
         endpoints = []
+
+        # Merge collection environments into a safe placeholder mapping.
+        # We intentionally do NOT propagate real values (may contain secrets).
+        environment_variables = {}
+        try:
+            for env in getattr(parse_result.collection, "environments", []) or []:
+                for var_name in getattr(env, "variables", {}).keys():
+                    environment_variables[var_name] = f"{{{{{var_name}}}}}"
+        except Exception:
+            environment_variables = {}
         
         # Traverse the collection tree and extract requests
         def traverse_items(items: List[BrunoItem]):
             for item in items:
                 if item.request:
-                    endpoint = self._bruno_request_to_endpoint_context(item.request, item.name)
+                    endpoint = self._bruno_request_to_endpoint_context(
+                        item.request,
+                        item.name,
+                        environment_variables=environment_variables,
+                    )
                     endpoints.append(endpoint)
                 
                 # Recursively traverse folders
@@ -302,7 +317,10 @@ class InductorAgent(BaseAgent):
         return endpoints
     
     def _bruno_request_to_endpoint_context(
-        self, request: BrunoRequest, name: str
+        self,
+        request: BrunoRequest,
+        name: str,
+        environment_variables: Optional[Dict[str, str]] = None,
     ) -> EndpointContext:
         """
         Convert a BrunoRequest to an EndpointContext.
@@ -357,13 +375,42 @@ class InductorAgent(BaseAgent):
             }
             auth_type = auth_type_map.get(request.auth.mode, AuthType.NONE)
             
-            # Store auth configuration (sanitized)
+            # Store auth configuration (safe placeholders only)
             if auth_type == AuthType.BASIC:
-                auth_config = {"username": request.auth.username or "", "password": "***"}
+                username = request.auth.username or "user"
+                password = request.auth.password or "pass"
+                auth_config = {
+                    "username": username if "{{" in str(username) else "user",
+                    "password": password if "{{" in str(password) else "pass",
+                }
             elif auth_type == AuthType.BEARER:
-                auth_config = {"token": "***"}
+                token = getattr(request.auth, "token", None) or "YOUR_TOKEN"
+                auth_config = {"token": token if "{{" in str(token) else "YOUR_TOKEN"}
             elif auth_type == AuthType.API_KEY:
-                auth_config = {"key": "apikey", "value": "***"}
+                # Bruno may store api-key details as extra fields; keep defaults if unknown.
+                dumped = request.auth.model_dump() if hasattr(request.auth, "model_dump") else {}
+                header_name = (
+                    dumped.get("header_name")
+                    or dumped.get("headerName")
+                    or dumped.get("name")
+                    or "X-API-Key"
+                )
+                key_value = dumped.get("key") or dumped.get("value") or "YOUR_API_KEY"
+                auth_config = {
+                    "header_name": header_name,
+                    "key": key_value if "{{" in str(key_value) else "YOUR_API_KEY",
+                }
+
+        # Infer bearer auth from Authorization header when Bruno auth section is absent
+        # (common in real Bruno collections: Authorization: Bearer {{TOKEN}})
+        if auth_type == AuthType.NONE:
+            authorization_value = headers.get("Authorization") or headers.get("authorization")
+            if isinstance(authorization_value, str):
+                match = re.match(r"^Bearer\s+(.+)$", authorization_value.strip(), flags=re.IGNORECASE)
+                if match:
+                    token = match.group(1).strip()
+                    auth_type = AuthType.BEARER
+                    auth_config = {"token": token if "{{" in token else "YOUR_TOKEN"}
         
         # Calculate documentation completeness
         completeness = self._calculate_documentation_completeness(request)
@@ -378,6 +425,7 @@ class InductorAgent(BaseAgent):
             body_schema=body_schema,
             auth_type=auth_type,
             auth_config=auth_config,
+            environment_variables=environment_variables or {},
             description=None,  # Bruno doesn't have description in the current model
             documentation_completeness=completeness,
         )
@@ -441,7 +489,13 @@ class InductorAgent(BaseAgent):
         
         # Authentication present
         max_score += 1.0
-        if request.auth and request.auth.mode != "none":
+        has_auth = bool(request.auth and request.auth.mode != "none")
+        if not has_auth and request.headers:
+            for header in request.headers:
+                if header.enabled and header.name.lower() == "authorization":
+                    has_auth = True
+                    break
+        if has_auth:
             score += 1.0
         
         # Scripts present (pre-request or post-response)

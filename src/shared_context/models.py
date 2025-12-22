@@ -71,6 +71,9 @@ class EndpointContext(BaseModel):
     # Authentication
     auth_type: AuthType = Field(default=AuthType.NONE)
     auth_config: Dict[str, Any] = Field(default_factory=dict)
+
+    # Bruno environments / variables (stored as safe placeholders, not secrets)
+    environment_variables: Dict[str, str] = Field(default_factory=dict)
     
     # Expected response (from documentation)
     expected_status: Optional[int] = Field(default=None)

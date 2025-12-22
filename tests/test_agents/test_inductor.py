@@ -31,6 +31,7 @@ from orchestration import (
 )
 from parsers.bruno_models import (
     BrunoCollection,
+    BrunoEnvironment,
     BrunoItem,
     BrunoRequest,
     BrunoParseResult,
@@ -345,6 +346,44 @@ class TestAuthentication:
         
         assert endpoint.auth_type == AuthType.BEARER
         assert "token" in endpoint.auth_config
+
+    def test_infer_bearer_auth_from_authorization_header_and_env(self, inductor_agent):
+        """Infer bearer auth from Authorization header and propagate env var placeholders."""
+        from parsers.bruno_models import BrunoHeader, BrunoBody, BrunoAuth, BrunoScript, BrunoConfig
+
+        request = BrunoRequest(
+            method="GET",
+            url="https://api.example.com/user",
+            headers=[
+                BrunoHeader(
+                    name="Authorization",
+                    value="Bearer {{GITHUB_TOKEN}}",
+                    enabled=True,
+                )
+            ],
+            params=[],
+            body=BrunoBody(),
+            auth=BrunoAuth(),  # no explicit auth mode
+            script=BrunoScript(),
+        )
+
+        item = BrunoItem(name="Get User", type="http", request=request, items=[])
+        collection = BrunoCollection(
+            name="Test API",
+            version="1.0.0",
+            items=[item],
+            environments=[BrunoEnvironment(name="Test", variables={"GITHUB_TOKEN": "SECRET"})],
+            brunoConfig=BrunoConfig(name="Test API", version="1", type="collection"),
+        )
+        parse_result = BrunoParseResult(collection=collection, total_requests=1, total_folders=0)
+
+        endpoints = inductor_agent._extract_endpoints_from_parse_result(parse_result)
+        assert len(endpoints) == 1
+
+        endpoint = endpoints[0]
+        assert endpoint.auth_type == AuthType.BEARER
+        assert endpoint.auth_config.get("token") == "{{GITHUB_TOKEN}}"
+        assert endpoint.environment_variables.get("GITHUB_TOKEN") == "{{GITHUB_TOKEN}}"
 
 
 class TestDocumentationCompleteness:

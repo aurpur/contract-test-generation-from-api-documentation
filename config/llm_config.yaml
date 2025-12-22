@@ -40,6 +40,36 @@ llm:
       max_tokens: 4096
       base_url: http://localhost:11434
 
+    # Additional local Ollama models for RQ4 multi-model comparison
+    # (keep these reasonably sized to allow practical experimentation)
+    qwen25_coder_7b:
+      provider: ollama
+      model: qwen2.5-coder:7b
+      temperature: 0.2
+      max_tokens: 4096
+      base_url: http://localhost:11434
+
+    qwen25_7b:
+      provider: ollama
+      model: qwen2.5:7b
+      temperature: 0.2
+      max_tokens: 4096
+      base_url: http://localhost:11434
+
+    gemma2_9b:
+      provider: ollama
+      model: gemma2:9b
+      temperature: 0.2
+      max_tokens: 4096
+      base_url: http://localhost:11434
+
+    codellama_7b:
+      provider: ollama
+      model: codellama:7b
+      temperature: 0.2
+      max_tokens: 4096
+      base_url: http://localhost:11434
+
   # Default model for each agent
   default_models:
     inductor: llama32
