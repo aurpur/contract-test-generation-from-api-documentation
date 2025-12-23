@@ -1,22 +1,38 @@
 """
+===============================================================================
 RQ4 LLM Comparison Experiments - Multi-Model Performance Analysis
+===============================================================================
 
-Research Question 4: Comment les différents LLMs se comparent-ils dans la génération de tests?
+OBJECTIF:
+    Question de Recherche 4: "Comment les différents LLMs se comparent-ils 
+    dans la génération de tests?"
+    
+    Ce module implémente des expériences complètes pour comparer les performances
+    de différents LLMs Ollama sur toutes les dimensions de qualité.
 
-This module implements comprehensive experiments to compare the performance of
-different Large Language Models (LLMs) across all quality dimensions: oracle generation,
-code generation, consistency, quality, and cost-effectiveness.
+DIMENSIONS DE COMPARAISON:
+    - Qualité Oracle: Précision, rappel, F1-score
+    - Qualité Code: Correction, lisibilité, maintenabilité
+    - Cohérence: Concordance oracle-code
+    - Performance: Temps de génération, utilisation tokens
+    - Robustesse: Performance avec documentation incomplète
 
-Comparison Dimensions:
-- Oracle Quality: Precision, recall, F1 score
-- Code Quality: Correctness, readability, maintainability
-- Consistency: Oracle-code coherence
-- Performance: Generation time, token usage
-- Cost-Effectiveness: Quality per dollar spent
-- Robustness: Performance with incomplete documentation
+MODÈLES COMPARÉS (Ollama uniquement):
+    - deepseek_r1      : Raisonnement avancé
+    - deepseek_coder   : Spécialisé code
+    - codellama_7b     : Meta CodeLlama
+    - qwen25_7b        : Qwen généraliste
+    - qwen25_coder_7b  : Qwen code
+    - llama31, llama32 : Meta Llama
+    - mistral          : Mistral 7B
 
-Author: Aurel IKAMA HONEY
+NOTE:
+    Tous les modèles sont locaux (Ollama). Pas de coûts API cloud.
+    La métrique "cost-effectiveness" est remplacée par "efficiency" (temps/qualité).
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json

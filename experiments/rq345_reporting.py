@@ -1,20 +1,27 @@
 """
+===============================================================================
 RQ345 Integrated Reporting - Comprehensive Visualization and Analysis
+===============================================================================
 
-This module provides comprehensive reporting and visualization capabilities for
-Research Questions 3, 4, and 5. It generates publication-ready outputs including:
-- Statistical tables (LaTeX, CSV, Markdown)
-- Comparative charts (quality, performance, cost)
-- Correlation heatmaps
-- Interactive dashboards (HTML)
-- Executive summaries
+OBJECTIF:
+    Reporting complet et visualisations pour les Questions de Recherche 3, 4 et 5.
+    Génère des outputs prêts pour publication incluant:
+    - Tableaux statistiques (LaTeX, CSV, Markdown)
+    - Graphiques comparatifs (qualité, performance)
+    - Heatmaps de corrélation
+    - Dashboards interactifs (HTML)
+    - Résumés exécutifs
 
-The reporting module integrates results from all three RQs and produces
-multi-dimensional visualizations suitable for academic publications and
-technical reports.
+FONCTIONNEMENT:
+    Ce module intègre les résultats des trois RQ et produit des visualisations
+    multi-dimensionnelles adaptées aux publications académiques.
+    
+    IMPORTANT: Utilise uniquement des modèles Ollama locaux.
+    Pas de métriques de coût cloud (remplacees par efficacité temps/qualité).
 
-Author: Aurel IKAMA HONEY
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import json
 import statistics

@@ -1,16 +1,31 @@
 """
+===============================================================================
 RQ2 Consistency Experiment Orchestrator
+===============================================================================
 
-Advanced orchestration system for running comprehensive RQ2 consistency experiments.
-Supports:
-- Batch consistency validation across multiple test suites
-- Multi-LLM comparison for code generation quality
-- Statistical analysis of consistency patterns
-- Cross-validation and experiment replication
-- Result aggregation and inconsistency pattern analysis
+OBJECTIF:
+    Orchestration avancée des expérimentations pour la Question de Recherche 2
+    (RQ2 — Détection et analyse des incohérences dans la documentation API).
 
-Author: Aurel IKAMA HONEY
+FONCTIONNALITÉS:
+    - Validation de cohérence batch sur plusieurs suites de tests
+    - Comparaison multi-LLM pour la qualité de génération de code
+    - Analyse statistique des patterns d'incohérence
+    - Validation croisée et réplication d'expériences
+    - Agrégation des résultats et analyse des patterns
+
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1, deepseek_coder (raisonnement/code)
+    - codellama_7b, qwen25_coder_7b (spécialisés code)
+    - qwen25_7b, llama31, llama32, mistral (généralistes)
+
+USAGE:
+    python -m experiments.rq2_orchestrator
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json
@@ -38,6 +53,15 @@ from src.validation.inconsistency_detector import (
     InconsistencyType,
     InconsistencySeverity
 )
+
+
+# ==============================================================================
+# MODÈLES OLLAMA DISPONIBLES
+# ==============================================================================
+AVAILABLE_OLLAMA_MODELS = [
+    "deepseek_r1", "deepseek_coder", "codellama_7b",
+    "qwen25_7b", "qwen25_coder_7b", "llama31", "llama32", "mistral"
+]
 
 
 @dataclass

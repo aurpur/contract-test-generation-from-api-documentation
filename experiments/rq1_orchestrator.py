@@ -1,16 +1,31 @@
 """
+===============================================================================
 RQ1 Experiment Orchestrator
+===============================================================================
 
-Advanced orchestration system for running comprehensive RQ1 validation experiments.
-Supports:
-- Batch experiment execution across multiple datasets
-- Parameter sweeping (completeness levels, LLM configurations)
-- Statistical analysis and significance testing
-- Cross-validation and experiment replication
-- Result aggregation and comparison
+OBJECTIF:
+    Orchestration avancée des expérimentations pour la Question de Recherche 1 
+    (RQ1 — Précision et complétude des oracles générés).
 
-Author: Aurel IKAMA HONEY
+FONCTIONNALITÉS:
+    - Exécution batch d'expériences sur plusieurs datasets
+    - Balayage de paramètres (niveaux de complétude, configurations LLM)
+    - Analyse statistique et tests de significativité
+    - Validation croisée et réplication d'expériences
+    - Agrégation et comparaison des résultats
+
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1, deepseek_coder, codellama_7b (spécialisés code/raisonnement)
+    - qwen25_7b, qwen25_coder_7b (modèles Alibaba)
+    - llama31, llama32, mistral (modèles généralistes)
+
+USAGE:
+    python -m experiments.rq1_orchestrator
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json
@@ -25,10 +40,28 @@ from experiments.rq1_oracle_validation import (
     RQ1ExperimentRunner,
     ExperimentConfig,
     ExperimentReport,
-    EndpointExperimentResult
+    EndpointExperimentResult,
+    _ensure_models_available
 )
 from experiments.ground_truth_manager import GroundTruthManager
 from src.shared_context.models import EndpointContext
+from src.utils.config import load_config
+
+
+# ==============================================================================
+# MODÈLES OLLAMA DISPONIBLES POUR LES EXPÉRIMENTATIONS
+# ==============================================================================
+# Ces modèles doivent être installés localement via `ollama pull <model>`
+AVAILABLE_OLLAMA_MODELS = [
+    "deepseek_r1",      # Raisonnement avancé (deepseek-r1:8b)
+    "deepseek_coder",   # Code spécialisé (deepseek-coder-v2)
+    "codellama_7b",     # Meta CodeLlama
+    "qwen25_7b",        # Qwen 2.5 généraliste
+    "qwen25_coder_7b",  # Qwen 2.5 code
+    "llama31",          # Meta Llama 3.1
+    "llama32",          # Meta Llama 3.2
+    "mistral",          # Mistral 7B
+]
 
 
 @dataclass
@@ -111,6 +144,10 @@ class RQ1Orchestrator:
         Returns:
             BatchExperimentResults with all experiment reports
         """
+        # Load LLM configurations
+        config = load_config()
+        self.llm_configs = _ensure_models_available(config, self.config.llm_models)
+        
         print(f"\n{'='*60}")
         print(f"BATCH EXPERIMENT: {self.config.experiment_name}")
         print(f"{'='*60}")
@@ -150,18 +187,22 @@ class RQ1Orchestrator:
                     print(f"    Replication {replication}/{self.config.num_replications}")
                     
                     # Create experiment config
+                    exp_id = f"{self.config.experiment_name}_c{int(completeness*100)}_r{replication}"
                     exp_config = ExperimentConfig(
-                        experiment_name=f"{self.config.experiment_name}_c{int(completeness*100)}_r{replication}",
+                        experiment_id=exp_id,
+                        name=exp_id,
+                        description=f"RQ1 experiment at {completeness*100:.0f}% completeness, replication {replication}",
                         llm_models=self.config.llm_models,
-                        endpoints=modified_endpoints,
-                        ground_truths={gt.endpoint_id: gt for gt in ground_truths},
                         num_endpoints=len(modified_endpoints),
                         output_dir=self.config.output_dir / f"completeness_{int(completeness*100)}" / f"rep_{replication}"
                     )
                     
                     # Run experiment
-                    runner = RQ1ExperimentRunner(exp_config)
-                    report = await runner.run_experiment()
+                    runner = RQ1ExperimentRunner(exp_config, self.llm_configs)
+                    report = await runner.run_experiment(
+                        endpoints=modified_endpoints,
+                        ground_truths={gt.endpoint_id: gt for gt in ground_truths}
+                    )
                     
                     # Store report
                     self.all_reports.append(report)
@@ -209,7 +250,7 @@ class RQ1Orchestrator:
                 id=gt.endpoint_id,
                 name=f"Endpoint for GT {gt.endpoint_id}",
                 method="GET",  # Would be from collection
-                path="/api/resource",  # Would be from collection
+                url="/api/resource",  # Would be from collection
                 description="Test endpoint",  # Would be from collection
                 documentation_completeness=1.0
             )
@@ -240,7 +281,7 @@ class RQ1Orchestrator:
                 id=endpoint.id,
                 name=endpoint.name,
                 method=endpoint.method,
-                path=endpoint.path,
+                url=endpoint.url,
                 description=endpoint.description if completeness > 0.5 else "",
                 documentation_completeness=completeness
             )
@@ -385,25 +426,52 @@ class RQ1Orchestrator:
         print(f"{'='*60}\n")
 
 
-async def run_sample_batch_experiment():
-    """Run a sample batch experiment with multiple configurations."""
+async def run_rq1_batch_experiment():
+    """
+    Exécute une expérimentation batch RQ1 avec les modèles Ollama disponibles.
     
-    # Create sample ground truth dataset
-    from experiments.ground_truth_manager import create_sample_ground_truth_dataset
-    gt_manager = create_sample_ground_truth_dataset()
+    Cette fonction :
+    1. Charge les ground truths depuis les datasets
+    2. Configure l'expérimentation avec des modèles Ollama locaux
+    3. Exécute les expériences avec différents niveaux de complétude
+    4. Génère les rapports d'analyse statistique
     
-    # Configure batch experiment
+    Returns:
+        BatchExperimentResults contenant tous les résultats
+    """
+    from experiments.ground_truth_manager import GroundTruthManager
+    
+    # Initialiser le gestionnaire de ground truths
+    gt_manager = GroundTruthManager()
+    
+    # Chercher les fichiers de ground truth existants
+    gt_dir = Path("experiments/datasets/ground_truths")
+    gt_files = list(gt_dir.glob("*.json")) if gt_dir.exists() else []
+    
+    if not gt_files:
+        print("⚠ Aucun fichier ground truth trouvé dans experiments/datasets/ground_truths/")
+        print("  Créez d'abord les datasets avec: python -m experiments.create_datasets")
+        return None
+    
+    # Configuration batch avec modèles Ollama uniquement
+    # Utilise un sous-ensemble de modèles pour des tests initiaux rapides
     config = BatchExperimentConfig(
-        experiment_name="rq1_completeness_impact",
-        description="Evaluate impact of documentation completeness on oracle quality",
-        llm_models=["gpt-4", "gpt-3.5-turbo", "claude-3"],
-        datasets=["sample_ground_truths.json"],
-        completeness_levels=[1.0, 0.75, 0.5, 0.25],
-        num_replications=3,
+        experiment_name="rq1_oracle_precision_study",
+        description="Évaluation de la précision des oracles avec modèles Ollama locaux",
+        llm_models=["deepseek_r1", "qwen25_coder_7b", "mistral"],  # 3 modèles représentatifs
+        datasets=[str(f) for f in gt_files[:2]],  # Premiers datasets
+        completeness_levels=[1.0, 0.75, 0.5],  # 3 niveaux de complétude
+        num_replications=2,  # 2 réplications pour validité statistique
         enable_statistical_tests=True
     )
     
-    # Run batch experiments
+    print(f"📊 Configuration expérimentation RQ1:")
+    print(f"   Modèles: {config.llm_models}")
+    print(f"   Datasets: {len(config.datasets)}")
+    print(f"   Niveaux complétude: {config.completeness_levels}")
+    print(f"   Réplications: {config.num_replications}")
+    
+    # Exécuter les expériences batch
     orchestrator = RQ1Orchestrator(config)
     results = await orchestrator.run_batch_experiments()
     
@@ -411,5 +479,5 @@ async def run_sample_batch_experiment():
 
 
 if __name__ == "__main__":
-    # Run sample batch experiment
-    asyncio.run(run_sample_batch_experiment())
+    # Exécuter l'expérimentation batch RQ1
+    asyncio.run(run_rq1_batch_experiment())

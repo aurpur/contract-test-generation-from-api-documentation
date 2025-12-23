@@ -1,35 +1,166 @@
 """
+===============================================================================
 RQ1 Oracle Validation Experiment Runner
+===============================================================================
 
-This module orchestrates experiments to validate Research Question 1:
-"Quelle est la précision et la complétude des oracles générés automatiquement?"
+OBJECTIF:
+    Ce module orchestre les expériences pour valider la Question de Recherche 1:
+    "Quelle est la précision et la complétude des oracles générés automatiquement?"
 
-It performs comprehensive validation of oracle generation accuracy by:
-1. Creating/loading ground truth oracles
-2. Running oracle generation with different LLM models
-3. Comparing generated oracles against ground truth
-4. Computing precision, recall, F1-score, and completeness metrics
-5. Generating detailed reports and visualizations
+FONCTIONNEMENT:
+    1. Charge les oracles de référence (ground truth) créés manuellement
+    2. Exécute la génération d'oracles avec de VRAIS agents OracleAgent
+    3. Compare les oracles générés aux oracles de référence
+    4. Calcule les métriques de précision, rappel, F1-score et complétude
+    5. Génère des rapports détaillés et des visualisations
 
-Author: Aurel IKAMA HONEY
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1       : Raisonnement avancé (deepseek-r1:8b)
+    - deepseek_coder    : Spécialisé code (deepseek-coder-v2)
+    - codellama_7b      : Meta CodeLlama 7B
+    - qwen25_7b         : Qwen 2.5 généraliste
+    - qwen25_coder_7b   : Qwen 2.5 code
+    - llama31, llama32  : Meta Llama
+    - mistral           : Mistral 7B
+
+IMPORTANT:
+    - PAS de simulation ou de mock - utilise les vrais agents
+    - PAS de modèles cloud (OpenAI, Anthropic, Google)
+    - Les modèles Ollama doivent être installés localement
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json
+import sys
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from uuid import UUID, uuid4
 import statistics
 
-from src.shared_context.models import EndpointContext, Oracle, HTTPMethod
+# Ajouter la racine du projet au path Python
+PROJECT_ROOT = Path(__file__).parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Imports des composants internes du projet
+from src.agents.base_agent import AgentConfig
 from src.agents.oracle import OracleAgent
+from src.orchestration import EventBus, InMemoryTaskQueue, MessageRouter, Task
+from src.shared_context import AgentType
+from src.shared_context.context_manager import ContextManager
+from src.shared_context.models import EndpointContext, Oracle, HTTPMethod
+from src.shared_context.storage import InMemoryStorage
+from src.utils.config import load_config
+from src.utils.logging import logger
 from src.validation.oracle_metrics import (
     OracleMetricsCalculator,
     GroundTruth,
     OraclePrecisionMetrics
 )
+
+
+# ==============================================================================
+# CONSTANTES ET CONFIGURATION
+# ==============================================================================
+
+# Répertoire des variantes de datasets pour les expériences
+VARIANTS_DIR = Path("experiments/datasets/variants")
+
+# Modèles Ollama disponibles pour les expériences RQ1
+AVAILABLE_MODELS = [
+    "deepseek_r1",      # Raisonnement avancé
+    "deepseek_coder",   # Code spécialisé
+    "codellama_7b",     # CodeLlama
+    "qwen25_7b",        # Qwen généraliste
+    "qwen25_coder_7b",  # Qwen code
+    "llama31",          # Llama 3.1
+    "llama32",          # Llama 3.2
+    "mistral",          # Mistral 7B
+]
+
+
+# ==============================================================================
+# FONCTIONS UTILITAIRES
+# ==============================================================================
+
+def _load_json(path: Path) -> Dict[str, Any]:
+    """Load JSON file."""
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def _variant_dir(dataset_name: str, completeness: float) -> Path:
+    """Get variant directory path."""
+    percent = int(round(completeness * 100))
+    return VARIANTS_DIR / dataset_name / f"completeness_{percent}"
+
+
+def load_variant(dataset_name: str, completeness: float) -> Tuple[List[EndpointContext], Dict[UUID, GroundTruth]]:
+    """Load endpoints and ground truths from a dataset variant."""
+    variant_dir = _variant_dir(dataset_name, completeness)
+    endpoints_path = variant_dir / "endpoints.json"
+    ground_truth_path = variant_dir / "ground_truth.json"
+
+    endpoints_data = _load_json(endpoints_path)
+    gt_data = _load_json(ground_truth_path)
+
+    endpoints: List[EndpointContext] = []
+    for item in endpoints_data.get("endpoints", []):
+        endpoints.append(
+            EndpointContext(
+                id=UUID(item["id"]),
+                name=item["name"],
+                method=HTTPMethod(item["method"]),
+                url=item["url"],
+                description=item.get("description"),
+                documentation_completeness=float(item.get("documentation_completeness", completeness)),
+            )
+        )
+
+    ground_truths: Dict[UUID, GroundTruth] = {}
+    for item in gt_data.get("ground_truths", []):
+        gt = GroundTruth(
+            endpoint_id=UUID(item["endpoint_id"]),
+            status_code=int(item["status_code"]),
+            required_headers=dict(item.get("required_headers", {})),
+            optional_headers=dict(item.get("optional_headers", {})),
+            response_schema=dict(item.get("response_schema", {})),
+            business_rules=list(item.get("business_rules", [])),
+            source=str(item.get("source", "unknown")),
+            confidence=float(item.get("confidence", 0.0)),
+            annotator=item.get("annotator"),
+            created_at=datetime.fromisoformat(item["created_at"]) if item.get("created_at") else None,
+        )
+        ground_truths[gt.endpoint_id] = gt
+
+    if not endpoints:
+        raise ValueError(f"No endpoints loaded from {endpoints_path}")
+
+    return endpoints, ground_truths
+
+
+def _ensure_models_available(config, model_names: List[str]) -> Dict[str, Dict[str, Any]]:
+    """Ensure requested LLM models are available in config."""
+    missing = [m for m in model_names if m not in config.llm_models]
+    if missing:
+        raise ValueError(
+            "Requested models are not available (check config/llm_config.yaml): "
+            + ", ".join(missing)
+        )
+
+    resolved: Dict[str, Dict[str, Any]] = {}
+    for name in model_names:
+        model_cfg = config.llm_models[name]
+        resolved[name] = model_cfg.model_dump() if hasattr(model_cfg, "model_dump") else dict(model_cfg)
+    return resolved
 
 
 @dataclass
@@ -197,23 +328,50 @@ class ExperimentReport:
 
 class RQ1ExperimentRunner:
     """
-    Orchestrates RQ1 validation experiments.
+    Orchestrates RQ1 validation experiments using REAL OracleAgent.
     
     Runs experiments to measure oracle generation precision and completeness
-    across different LLM models.
+    across different LLM models using the actual agent infrastructure.
     """
     
-    def __init__(self, config: ExperimentConfig):
-        self.config = config
-        self.calculator = OracleMetricsCalculator()
-        self.oracle_agents: Dict[str, OracleAgent] = {}
+    def __init__(self, config: ExperimentConfig, llm_configs: Dict[str, Dict[str, Any]]):
+        """
+        Initialize RQ1 experiment runner.
         
-        # Initialize Oracle agents for each LLM model
-        for model in config.llm_models:
-            self.oracle_agents[model] = OracleAgent(
-                llm_model=model,
-                enable_real_api_calls=config.include_real_api_calls
-            )
+        Args:
+            config: Experiment configuration
+            llm_configs: Dictionary mapping model names to their LLM configurations
+        """
+        self.config = config
+        self.llm_configs = llm_configs
+        self.calculator = OracleMetricsCalculator()
+    
+    async def _create_oracle_agent(
+        self, 
+        model_name: str, 
+        context_manager: ContextManager
+    ) -> OracleAgent:
+        """Create a real OracleAgent for a specific LLM model."""
+        router = MessageRouter()
+        event_bus = EventBus()
+        task_queue = InMemoryTaskQueue()
+        
+        llm_config = self.llm_configs.get(model_name)
+        if not llm_config:
+            raise ValueError(f"No LLM config found for model: {model_name}")
+        
+        agent = OracleAgent(
+            config=AgentConfig(agent_type=AgentType.ORACLE),
+            context_manager=context_manager,
+            message_router=router,
+            event_bus=event_bus,
+            task_queue=task_queue,
+            llm_configs=[llm_config],
+            consensus_threshold=0.0,  # No consensus needed for single model
+            enable_api_calls=self.config.include_real_api_calls,
+        )
+        
+        return agent
     
     async def run_experiment(
         self,
@@ -221,7 +379,7 @@ class RQ1ExperimentRunner:
         ground_truths: Dict[UUID, GroundTruth]
     ) -> ExperimentReport:
         """
-        Run complete RQ1 experiment.
+        Run complete RQ1 experiment using real OracleAgent.
         
         Args:
             endpoints: List of endpoint contexts to test
@@ -237,96 +395,140 @@ class RQ1ExperimentRunner:
             total_endpoints=len(endpoints)
         )
         
-        # Run experiments for each endpoint
-        for endpoint in endpoints:
-            if endpoint.id not in ground_truths:
-                print(f"⚠️  Skipping {endpoint.name}: no ground truth available")
-                continue
+        # Add ground truths to calculator
+        for gt in ground_truths.values():
+            self.calculator.add_ground_truth(gt)
+        
+        # Run experiments for each model
+        for model in self.config.llm_models:
+            print(f"\n{'='*60}")
+            print(f"Running experiments with model: {model}")
+            print(f"{'='*60}")
             
-            result = await self._run_endpoint_experiment(
-                endpoint,
-                ground_truths[endpoint.id]
-            )
-            report.endpoint_results.append(result)
+            try:
+                oracles_by_endpoint = await self._run_model_experiment(
+                    model, endpoints
+                )
+                
+                # Calculate metrics for each endpoint
+                for endpoint in endpoints:
+                    if endpoint.id not in ground_truths:
+                        print(f"⚠️  Skipping {endpoint.name}: no ground truth available")
+                        continue
+                    
+                    oracle = oracles_by_endpoint.get(endpoint.id)
+                    gt = ground_truths[endpoint.id]
+                    
+                    # Find or create result for this endpoint
+                    result = self._get_or_create_endpoint_result(report, endpoint, gt)
+                    
+                    if oracle:
+                        result.generated_oracles[model] = oracle
+                        
+                        metrics = self.calculator.calculate_metrics(
+                            oracle=oracle,
+                            endpoint=endpoint,
+                            ground_truth=gt
+                        )
+                        result.metrics[model] = metrics
+                        
+                        print(f"✓ {endpoint.name}: P={metrics.precision:.2f}, R={metrics.recall:.2f}, F1={metrics.f1_score:.2f}")
+                    else:
+                        result.errors[model] = "No oracle generated"
+                        print(f"✗ {endpoint.name}: No oracle generated")
+                        
+            except Exception as e:
+                logger.error(f"Error running experiment with {model}: {e}")
+                print(f"✗ Model {model} failed: {e}")
+                # Mark all endpoints as failed for this model
+                for endpoint in endpoints:
+                    if endpoint.id in ground_truths:
+                        result = self._get_or_create_endpoint_result(
+                            report, endpoint, ground_truths[endpoint.id]
+                        )
+                        result.errors[model] = str(e)
         
         # Calculate aggregate metrics
         report.completed_at = datetime.utcnow()
         report.calculate_aggregates()
         
         # Save report
-        report.save()
+        output_dir = self.config.output_dir / "rq1"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        report.save(output_dir / f"rq1_report_{self.config.experiment_id}.json")
         
         return report
     
-    async def _run_endpoint_experiment(
-        self,
-        endpoint: EndpointContext,
+    def _get_or_create_endpoint_result(
+        self, 
+        report: 'ExperimentReport', 
+        endpoint: EndpointContext, 
         ground_truth: GroundTruth
     ) -> EndpointExperimentResult:
-        """Run experiment for a single endpoint across all LLM models."""
+        """Get existing endpoint result or create new one."""
+        for result in report.endpoint_results:
+            if result.endpoint_id == endpoint.id:
+                return result
+        
         result = EndpointExperimentResult(
             endpoint_id=endpoint.id,
             endpoint_name=endpoint.name,
             ground_truth=ground_truth
         )
-        
-        # Generate oracles with each LLM model
-        for model in self.config.llm_models:
-            try:
-                start_time = datetime.utcnow()
-                
-                # Generate oracle
-                oracle = await self._generate_oracle(
-                    model,
-                    endpoint
-                )
-                
-                execution_time = (datetime.utcnow() - start_time).total_seconds()
-                
-                # Store results
-                result.generated_oracles[model] = oracle
-                result.execution_times[model] = execution_time
-                
-                # Calculate metrics
-                metrics = self.calculator.calculate_metrics(
-                    oracle=oracle,
-                    endpoint=endpoint,
-                    ground_truth=ground_truth
-                )
-                result.metrics[model] = metrics
-                
-                print(f"✓ {endpoint.name} with {model}: P={metrics.precision:.2f}, R={metrics.recall:.2f}, F1={metrics.f1_score:.2f}")
-                
-            except Exception as e:
-                result.errors[model] = str(e)
-                print(f"✗ {endpoint.name} with {model}: {e}")
-        
+        report.endpoint_results.append(result)
         return result
     
-    async def _generate_oracle(
+    async def _run_model_experiment(
         self,
         model: str,
-        endpoint: EndpointContext
-    ) -> Oracle:
-        """Generate oracle using specified LLM model."""
-        agent = self.oracle_agents[model]
+        endpoints: List[EndpointContext]
+    ) -> Dict[UUID, Oracle]:
+        """
+        Run oracle generation for all endpoints using a specific model.
         
-        # Create task for oracle generation
-        from src.shared_context.models import Task
-        task = Task(
-            task_type="derive_oracles",
-            payload={"contexts": [endpoint]}
+        Returns dict mapping endpoint_id to generated Oracle.
+        """
+        # Create fresh storage and context manager for this run
+        storage = InMemoryStorage()
+        await storage.initialize()
+        context_manager = ContextManager(storage=storage)
+        
+        # Create session
+        session_label = f"rq1_{model}_{self.config.experiment_id}"
+        session = await context_manager.create_session(
+            collection_name=session_label,
+            collection_path=str(VARIANTS_DIR),
+            llm_models={AgentType.ORACLE: model},
+            config={"session_label": session_label, "model": model},
         )
         
-        # Execute task
-        result = await agent.process_task(task)
+        # Add endpoints to session
+        for endpoint in endpoints:
+            await context_manager.add_endpoint(session.id, endpoint)
         
-        # Extract oracle from result
-        oracles = result.get("oracles", [])
-        if not oracles:
-            raise ValueError(f"No oracle generated by {model}")
+        # Create oracle agent
+        oracle_agent = await self._create_oracle_agent(model, context_manager)
         
-        return oracles[0]
+        # Generate oracles
+        start_time = datetime.utcnow()
+        
+        oracle_task = Task(
+            agent_type=AgentType.ORACLE,
+            task_type="derive_oracles",
+            session_id=session.id,
+            payload={"context_ids": [str(e.id) for e in endpoints]},
+        )
+        
+        await oracle_agent.process_task(oracle_task)
+        
+        elapsed = (datetime.utcnow() - start_time).total_seconds()
+        print(f"  Oracle generation completed in {elapsed:.2f}s")
+        
+        # Retrieve generated oracles
+        oracles = await context_manager.get_oracles(session.id)
+        oracles_by_endpoint = {o.endpoint_id: o for o in oracles}
+        
+        return oracles_by_endpoint
 
 
 def create_sample_endpoints() -> List[EndpointContext]:
@@ -463,31 +665,61 @@ def create_sample_ground_truths(endpoints: List[EndpointContext]) -> Dict[UUID, 
     return ground_truths
 
 
-async def run_sample_experiment():
-    """Run a sample RQ1 experiment."""
-    # Configuration
+async def run_experiment_on_dataset(
+    dataset_name: str = "jsonplaceholder_rest_api",
+    completeness: float = 1.0,
+    model_names: Optional[List[str]] = None
+):
+    """
+    Run RQ1 experiment on a real dataset with real agents.
+    
+    Args:
+        dataset_name: Name of the dataset (e.g., 'jsonplaceholder_rest_api')
+        completeness: Documentation completeness level (0.0-1.0)
+        model_names: List of LLM models to use. Defaults to available models.
+    """
+    # Load configuration
+    app_config = load_config()
+    
+    # Determine models to use
+    if model_names is None:
+        # Use all available models
+        model_names = list(app_config.llm_models.keys())
+        if not model_names:
+            raise ValueError("No LLM models configured. Check config/llm_config.yaml")
+    
+    print(f"Using models: {model_names}")
+    
+    # Get LLM configurations
+    llm_configs = _ensure_models_available(app_config, model_names)
+    
+    # Load dataset
+    print(f"\nLoading dataset: {dataset_name} (completeness={completeness})")
+    endpoints, ground_truths = load_variant(dataset_name, completeness)
+    print(f"Loaded {len(endpoints)} endpoints with {len(ground_truths)} ground truths")
+    
+    # Create experiment config
+    experiment_id = f"rq1_{dataset_name}_{int(completeness*100)}pct_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
     config = ExperimentConfig(
-        experiment_id=f"rq1_sample_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
-        name="RQ1 Sample Validation",
-        description="Sample experiment to validate oracle precision and completeness",
-        llm_models=["gpt-4", "claude-3-opus"],  # Add more as needed
-        num_endpoints=3,
+        experiment_id=experiment_id,
+        name=f"RQ1 - {dataset_name}",
+        description=f"Oracle validation on {dataset_name} with {completeness*100:.0f}% completeness",
+        llm_models=model_names,
+        num_endpoints=len(endpoints),
         include_real_api_calls=False,
-        output_dir=Path("experiments/results/rq1")
+        output_dir=Path("experiments/results")
     )
     
-    # Create test data
-    endpoints = create_sample_endpoints()
-    ground_truths = create_sample_ground_truths(endpoints)
-    
-    # Run experiment
-    runner = RQ1ExperimentRunner(config)
+    # Run experiment with real agents
+    runner = RQ1ExperimentRunner(config, llm_configs)
     report = await runner.run_experiment(endpoints, ground_truths)
     
     # Print summary
     print("\n" + "="*80)
     print(f"RQ1 Experiment Complete: {config.experiment_id}")
     print("="*80)
+    print(f"Dataset: {dataset_name}")
+    print(f"Completeness: {completeness*100:.0f}%")
     print(f"Total Endpoints: {report.total_endpoints}")
     print(f"Duration: {(report.completed_at - report.started_at).total_seconds():.2f}s")
     print("\nAggregate Metrics by LLM:")
@@ -498,13 +730,13 @@ async def run_sample_experiment():
         key=lambda x: x[1]["f1_mean"],
         reverse=True
     ):
-        rank = report.llm_rankings[model]
+        rank = report.llm_rankings.get(model, "-")
         print(f"\n{rank}. {model}")
         print(f"   Precision: {metrics['precision_mean']:.3f} (±{metrics['precision_std']:.3f})")
         print(f"   Recall:    {metrics['recall_mean']:.3f} (±{metrics['recall_std']:.3f})")
         print(f"   F1 Score:  {metrics['f1_mean']:.3f} (±{metrics['f1_std']:.3f})")
         print(f"   Complete:  {metrics['completeness_mean']:.3f} (±{metrics['completeness_std']:.3f})")
-        print(f"   Success:   {report.successful_generations[model]}/{report.total_endpoints}")
+        print(f"   Success:   {report.successful_generations.get(model, 0)}/{report.total_endpoints}")
     
     print("\n" + "="*80)
     print(f"Report saved to: experiments/results/rq1/rq1_report_{config.experiment_id}.json")
@@ -513,6 +745,39 @@ async def run_sample_experiment():
     return report
 
 
+async def run_sample_experiment():
+    """Run RQ1 experiment on available datasets."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Run RQ1 Oracle Validation Experiment")
+    parser.add_argument(
+        "--dataset", 
+        type=str, 
+        default="jsonplaceholder_rest_api",
+        help="Dataset name to use (default: jsonplaceholder_rest_api)"
+    )
+    parser.add_argument(
+        "--completeness",
+        type=float,
+        default=1.0,
+        help="Documentation completeness level 0.0-1.0 (default: 1.0)"
+    )
+    parser.add_argument(
+        "--models",
+        type=str,
+        nargs="+",
+        default=None,
+        help="LLM models to use (default: all available)"
+    )
+    
+    args = parser.parse_args()
+    
+    return await run_experiment_on_dataset(
+        dataset_name=args.dataset,
+        completeness=args.completeness,
+        model_names=args.models
+    )
+
+
 if __name__ == "__main__":
-    # Run sample experiment
     asyncio.run(run_sample_experiment())

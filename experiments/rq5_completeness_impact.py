@@ -1,22 +1,36 @@
 """
+===============================================================================
 RQ5 Completeness Impact Experiments - Documentation Quality Analysis
+===============================================================================
 
-Research Question 5: Quel est l'impact de la complétude de la documentation sur la qualité des tests générés?
+OBJECTIF:
+    Question de Recherche 5: "Quel est l'impact de la complétude de la 
+    documentation sur la qualité des tests générés?"
+    
+    Ce module analyse la corrélation entre la complétude de la documentation API
+    et la qualité des tests générés. Il évalue comment une documentation manquante
+    ou incomplète affecte la précision des oracles et la qualité du code.
 
-This module implements experiments to analyze the correlation between API documentation
-completeness and the quality of generated tests. It evaluates how missing or incomplete
-documentation affects oracle accuracy, code quality, and overall test effectiveness.
+DIMENSIONS D'ANALYSE:
+    - Niveaux de complétude: 100%, 75%, 50%, 25%, 10% (minimal)
+    - Impact qualité: Corrélation complétude ↔ scores de qualité
+    - Éléments manquants: Impact des codes status, headers, schémas absents
+    - Robustesse LLM: Performance des modèles avec doc incomplète
+    - Dégradation qualité: Taux de perte qualité par réduction doc
+    - Identification seuils: Complétude minimale pour qualité acceptable
 
-Analysis Dimensions:
-- Completeness Levels: 100%, 75%, 50%, 25%, 0% (minimal)
-- Quality Impact: Correlation between completeness and quality scores
-- Missing Elements: Impact of missing status codes, headers, schemas, examples
-- LLM Robustness: Model performance with incomplete documentation
-- Quality Degradation: Rate of quality loss per documentation reduction
-- Threshold Identification: Minimum completeness for acceptable quality
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1, deepseek_coder, codellama_7b
+    - qwen25_7b, qwen25_coder_7b, llama31, llama32, mistral
 
-Author: Aurel IKAMA HONEY
+IMPORTANT:
+    - PAS de simulation - utilise les vrais agents avec datasets réels
+    - PAS de modèles cloud (OpenAI, Anthropic, Google)
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json

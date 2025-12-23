@@ -1,14 +1,26 @@
 """
+===============================================================================
 Test Dataset Creation for RQ1 Experiments
+===============================================================================
 
-Creates diverse test datasets with:
-1. Real Bruno API collections
-2. Various documentation completeness levels
-3. Multiple API domains (REST CRUD, authentication, pagination, etc.)
-4. Ground truth annotations
+OBJECTIF:
+    Créer des datasets de test diversifiés pour les expériences RQ1.
 
-Author: Aurel IKAMA HONEY
+CONTENU DES DATASETS:
+    1. Collections Bruno d'APIs réelles (pas de simulation)
+    2. Différents niveaux de complétude de documentation
+    3. Domaines API variés (REST CRUD, authentification, pagination, etc.)
+    4. Annotations ground truth créées manuellement ou extraites
+
+USAGE:
+    python -m experiments.create_datasets
+
+NOTE:
+    Les datasets sont stockés dans experiments/datasets/
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import json
 import uuid

@@ -1,17 +1,26 @@
 """
+===============================================================================
 Dataset Exporter/Importer
+===============================================================================
 
-This module provides utilities for exporting and importing datasets in various formats,
-facilitating sharing and reproducibility of experiments.
+OBJECTIF:
+    Utilitaires pour exporter et importer des datasets dans différents formats,
+    facilitant le partage et la reproductibilité des expériences.
 
-Supported formats:
-1. JSON (native format)
-2. ZIP archives
-3. CSV/TSV for metadata
-4. Integration with experiment runners
+FORMATS SUPPORTÉS:
+    1. JSON (format natif)
+    2. Archives ZIP
+    3. CSV/TSV pour les métadonnées
+    4. Intégration avec les runners d'expériences
 
-Author: Aurel IKAMA HONEY
+USAGE:
+    from experiments.dataset_exporter import DatasetExporter
+    exporter = DatasetExporter()
+    exporter.export_to_zip(dataset, "output.zip")
+
+Auteur: Aurel IKAMA HONEY
 Date: December 12, 2025
+===============================================================================
 """
 import csv
 import json

@@ -1,17 +1,31 @@
 """
+===============================================================================
 Ground Truth Management System
+===============================================================================
 
-This module provides tools for creating, managing, and persisting ground truth
-oracles for RQ1 validation experiments.
+OBJECTIF:
+    Ce module fournit des outils pour créer, gérer et persister les oracles
+    de référence (ground truth) pour les expériences de validation RQ1.
 
-Ground truths can be:
-1. Manually annotated by experts
-2. Extracted from real API responses
-3. Imported from existing test suites
-4. Generated from OpenAPI/Swagger specifications
+SOURCES DE GROUND TRUTH:
+    Les ground truths peuvent être:
+    1. Annotés manuellement par des experts
+    2. Extraits de réponses API réelles
+    3. Importés de suites de tests existantes
+    4. Générés à partir de spécifications OpenAPI/Swagger
 
-Author: Aurel IKAMA HONEY
+FONCTIONNALITÉS:
+    - Création de ground truths depuis diverses sources
+    - Stockage/chargement depuis JSON
+    - Validation des ground truths
+    - Recherche et filtrage
+
+IMPORTANT:
+    Ce module gère les données de référence REELLES, pas de simulation.
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import json
 from dataclasses import asdict

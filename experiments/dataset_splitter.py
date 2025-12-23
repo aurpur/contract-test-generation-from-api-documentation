@@ -1,17 +1,26 @@
 """
+===============================================================================
 Dataset Splitter for Train/Test Division
+===============================================================================
 
-This module provides stratified splitting of datasets into train and test sets,
-ensuring representative distribution across domains, completeness levels, and complexity.
+OBJECTIF:
+    Diviser les datasets de manière stratifiée en ensembles train et test,
+    garantissant une distribution représentative selon plusieurs critères.
 
-Features:
-1. Stratified split by multiple criteria
-2. Validation of split quality
-3. Prevention of data leakage
-4. Export/import of splits
+FONCTIONNALITÉS:
+    1. Split stratifié par critères multiples (domaine, complétude, complexité)
+    2. Validation de la qualité du split
+    3. Prévention des fuites de données (data leakage)
+    4. Export/import des splits
 
-Author: Aurel IKAMA HONEY
+USAGE:
+    from experiments.dataset_splitter import DatasetSplitter
+    splitter = DatasetSplitter()
+    train, test = splitter.split(dataset, test_ratio=0.2)
+
+Auteur: Aurel IKAMA HONEY
 Date: December 12, 2025
+===============================================================================
 """
 import json
 import random

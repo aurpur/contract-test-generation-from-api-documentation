@@ -1,19 +1,33 @@
 """
+===============================================================================
 RQ2 Consistency Validation Experiment Runner
+===============================================================================
 
-This module orchestrates experiments to validate Research Question 2:
-"Le code généré est-il cohérent avec les oracles dérivés?"
+OBJECTIF:
+    Ce module orchestre les expériences pour valider la Question de Recherche 2:
+    "Le code généré est-il cohérent avec les oracles dérivés?"
 
-It performs comprehensive consistency validation by:
-1. Generating oracles for test endpoints
-2. Generating test code (Java + Gherkin) from oracles
-3. Detecting inconsistencies between oracles and generated code
-4. Computing coherence scores and consistency metrics
-5. Identifying missing, extra, or incorrect validations
-6. Generating detailed reports and visualizations
+FONCTIONNEMENT:
+    1. Génération d'oracles pour les endpoints de test
+    2. Génération de code de test (Java + Gherkin) à partir des oracles
+    3. Détection des incohérences entre oracles et code généré
+    4. Calcul des scores de cohérence et métriques de consistance
+    5. Identification des validations manquantes, en trop ou incorrectes
+    6. Génération de rapports détaillés et visualisations
 
-Author: Aurel IKAMA HONEY
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1, deepseek_coder (raisonnement/code)
+    - codellama_7b, qwen25_coder_7b (spécialisés code)
+    - qwen25_7b, llama31, llama32, mistral (généralistes)
+
+IMPORTANT:
+    - PAS de simulation - utilise les vrais agents
+    - PAS de modèles cloud (OpenAI, Anthropic, Google)
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json

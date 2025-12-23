@@ -1,24 +1,42 @@
 """
+===============================================================================
 RQ345 Unified Orchestrator - Combined Research Questions Analysis
+===============================================================================
 
-This module provides unified orchestration for Research Questions 3, 4, and 5:
-- RQ3: Code quality assessment
-- RQ4: LLM comparison across dimensions
-- RQ5: Documentation completeness impact
+OBJECTIF:
+    Orchestration unifiée pour les Questions de Recherche 3, 4 et 5:
+    - RQ3: Évaluation de la qualité du code généré
+    - RQ4: Comparaison des performances des modèles LLM
+    - RQ5: Impact de la complétude de la documentation
 
-The orchestrator runs all three research questions in sequence or parallel,
-provides cross-RQ analysis, and generates comprehensive comparative insights.
+FONCTIONNALITÉS:
+    - Exécution batch sur plusieurs endpoints et modèles
+    - Analyse de corrélation inter-RQ
+    - Agrégation intégrée des résultats
+    - Tests statistiques multi-dimensions
+    - Détection de patterns comprehensive
+    - Outputs prêts pour publication
 
-Features:
-- Batch execution across multiple endpoints and models
-- Cross-RQ correlation analysis
-- Integrated result aggregation
-- Statistical testing across dimensions
-- Comprehensive pattern detection
-- Publication-ready outputs
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1      : Raisonnement avancé (deepseek-r1:8b)
+    - deepseek_coder   : Code spécialisé (deepseek-coder-v2)
+    - codellama_7b     : Meta CodeLlama 7B
+    - qwen25_7b        : Qwen 2.5 généraliste
+    - qwen25_coder_7b  : Qwen 2.5 code
+    - llama31, llama32 : Meta Llama
+    - mistral          : Mistral 7B
 
-Author: Aurel IKAMA HONEY
+IMPORTANT:
+    - PAS de simulation - utilise les vrais agents
+    - PAS de modèles cloud (OpenAI, Anthropic, Google)
+
+USAGE:
+    python -m experiments.rq345_orchestrator
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json
@@ -45,6 +63,15 @@ from experiments.rq5_completeness_impact import (
     RQ5ExperimentRunner
 )
 from src.shared_context.models import EndpointContext, GeneratedTest, Oracle
+
+
+# ==============================================================================
+# MODÈLES OLLAMA DISPONIBLES
+# ==============================================================================
+AVAILABLE_OLLAMA_MODELS = [
+    "deepseek_r1", "deepseek_coder", "codellama_7b",
+    "qwen25_7b", "qwen25_coder_7b", "llama31", "llama32", "mistral"
+]
 
 
 @dataclass

@@ -1,19 +1,33 @@
 """
+===============================================================================
 RQ3 Quality Validation Experiments - Code Quality Assessment
+===============================================================================
 
-Research Question 3: Quelle est la qualité du code de test généré?
+OBJECTIF:
+    Question de Recherche 3: "Quelle est la qualité du code de test généré?"
+    
+    Ce module implémente les expériences pour évaluer la qualité du code de test
+    généré selon plusieurs dimensions: correction, lisibilité, maintenabilité et
+    bonnes pratiques.
 
-This module implements experiments to evaluate the quality of generated test code
-across multiple dimensions: correctness, readability, maintainability, and best practices.
+DIMENSIONS DE QUALITÉ:
+    - Correction: Assertions valides, usage correct du framework, erreurs
+    - Lisibilité: Structure du code, conventions de nommage, complexité
+    - Maintenabilité: Duplication, modularité, cohésion
+    - Bonnes Pratiques: Patterns framework, structure des tests, couverture
 
-Quality Dimensions:
-- Correctness: Valid assertions, proper framework usage, compilation/runtime errors
-- Readability: Code structure, naming conventions, complexity
-- Maintainability: Code duplication, modularity, cohesion
-- Best Practices: Framework patterns, test structure, coverage
+MODÈLES LLM:
+    Ce module utilise UNIQUEMENT des modèles Ollama locaux :
+    - deepseek_r1, deepseek_coder, codellama_7b
+    - qwen25_7b, qwen25_coder_7b, llama31, llama32, mistral
 
-Author: Aurel IKAMA HONEY
+IMPORTANT:
+    - PAS de simulation - utilise les vrais agents
+    - PAS de modèles cloud (OpenAI, Anthropic, Google)
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import asyncio
 import json

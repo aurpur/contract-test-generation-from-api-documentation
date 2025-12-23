@@ -1,0 +1,128 @@
+{
+  "created_at": "2025-12-23T06:39:21.434348",
+  "count": 3,
+  "ground_truths": [
+    {
+      "endpoint_id": "1c01aa1d-9fc3-4708-b8b5-e55631bb1ed0",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {
+        "Cache-Control": "max-age=3600"
+      },
+      "response_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "business_rules": [
+        "Returns 404 if user not found",
+        "User ID must be positive integer"
+      ],
+      "source": "manual",
+      "confidence": 1.0,
+      "annotator": "Expert QA Team",
+      "created_at": "2025-12-23T06:39:21.434308"
+    },
+    {
+      "endpoint_id": "b6f20a9d-d279-49a4-8308-5b9e339db867",
+      "status_code": 201,
+      "required_headers": {
+        "Content-Type": "application/json",
+        "Location": "/api/users/{id}"
+      },
+      "optional_headers": {},
+      "response_schema": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "business_rules": [
+        "Returns 409 Conflict if email already exists",
+        "Returns 400 Bad Request if email format invalid",
+        "Email must be unique across all users"
+      ],
+      "source": "manual",
+      "confidence": 1.0,
+      "annotator": "Expert QA Team",
+      "created_at": "2025-12-23T06:39:21.434320"
+    },
+    {
+      "endpoint_id": "5ca9bb74-90da-4ef1-8067-d168124cf977",
+      "status_code": 200,
+      "required_headers": {
+        "Content-Type": "application/json"
+      },
+      "optional_headers": {
+        "X-Total-Count": "integer",
+        "X-Page-Number": "integer"
+      },
+      "response_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "email",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "business_rules": [
+        "Default pagination: page=1, limit=10",
+        "Maximum limit=100",
+        "Returns empty array if no users"
+      ],
+      "source": "manual",
+      "confidence": 1.0,
+      "annotator": "Expert QA Team",
+      "created_at": "2025-12-23T06:39:21.434323"
+    }
+  ]
+}

@@ -1,18 +1,27 @@
 """
+===============================================================================
 Dataset Validator
+===============================================================================
 
-This module validates the quality and consistency of generated datasets,
-ensuring they meet quality standards for experimental use.
+OBJECTIF:
+    Valider la qualité et la cohérence des datasets générés,
+    garantissant qu'ils respectent les standards de qualité pour l'expérimentation.
 
-Validation checks:
-1. Completeness of annotations
-2. Schema consistency
-3. Inter-variant consistency
-4. Ground truth quality
-5. Metadata completeness
+VÉRIFICATIONS:
+    1. Complétude des annotations
+    2. Cohérence des schémas
+    3. Cohérence inter-variantes
+    4. Qualité des ground truths
+    5. Complétude des métadonnées
 
-Author: Aurel IKAMA HONEY
+USAGE:
+    from experiments.dataset_validator import DatasetValidator
+    validator = DatasetValidator()
+    report = validator.validate(dataset_path)
+
+Auteur: Aurel IKAMA HONEY
 Date: December 12, 2025
+===============================================================================
 """
 import json
 from collections import defaultdict

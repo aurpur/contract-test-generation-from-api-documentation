@@ -1,10 +1,24 @@
 """
+===============================================================================
 Collection Crawler for Public APIs
+===============================================================================
 
-This module crawls public APIs and generates Bruno collections in proper format.
+OBJECTIF:
+    Ce module parcourt les APIs publiques et génère des collections Bruno
+    au format approprié pour les expérimentations.
 
-Author: Aurel IKAMA HONEY
+FONCTIONNALITÉS:
+    - Crawling d'APIs publiques (JSONPlaceholder, HTTPBin, etc.)
+    - Génération de fichiers .bru conformes au format Bruno
+    - Extraction de métadonnées pour chaque endpoint
+    - Support des différents types de requêtes HTTP
+
+USAGE:
+    python -m experiments.collection_crawler
+
+Auteur: Aurel IKAMA HONEY
 Date: December 12, 2025
+===============================================================================
 """
 import json
 from datetime import datetime

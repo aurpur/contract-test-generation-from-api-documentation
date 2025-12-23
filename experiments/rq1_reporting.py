@@ -1,15 +1,27 @@
 """
+===============================================================================
 Reporting and Visualization for RQ1 Experiments
+===============================================================================
 
-Creates publication-ready visualizations and reports:
-- Precision/Recall/F1 comparison charts
-- Statistical significance tables
-- LaTeX tables for papers
-- Interactive HTML dashboards
-- CSV exports for further analysis
+OBJECTIF:
+    Génère des visualisations et rapports de qualité publication pour RQ1:
+    - Graphiques comparatifs Precision/Recall/F1
+    - Tableaux de significativité statistique
+    - Tableaux LaTeX pour articles scientifiques
+    - Dashboards HTML interactifs
+    - Exports CSV pour analyses complémentaires
 
-Author: Aurel IKAMA HONEY
+USAGE:
+    Ce module est appelé après l'exécution des expériences RQ1.
+    Les données proviennent des vrais agents OracleAgent (pas de simulation).
+    
+    from experiments.rq1_reporting import RQ1ReportGenerator
+    generator = RQ1ReportGenerator()
+    generator.generate_full_report(batch_results)
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import json
 from dataclasses import dataclass
@@ -20,28 +32,41 @@ import statistics
 
 try:
     import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend
+    matplotlib.use('Agg')  # Backend non-interactif pour serveurs
     import matplotlib.pyplot as plt
     import seaborn as sns
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-    print("Warning: matplotlib/seaborn not available. Install with: pip install matplotlib seaborn")
+    print("Warning: matplotlib/seaborn non disponibles. Installer avec: pip install matplotlib seaborn")
 
 from experiments.rq1_oracle_validation import ExperimentReport
 from experiments.rq1_orchestrator import BatchExperimentResults
 
 
+# ==============================================================================
+# GÉNÉRATEUR DE RAPPORTS RQ1
+# ==============================================================================
+
 class RQ1ReportGenerator:
     """
-    Generate comprehensive reports and visualizations for RQ1 experiments.
+    Génère des rapports complets et des visualisations pour les expériences RQ1.
+    
+    Cette classe prend les résultats d'expériences réelles (pas de simulation)
+    et produit des artefacts pour publication académique.
     """
     
     def __init__(self, output_dir: Path = Path("experiments/results/rq1/reports")):
+        """
+        Initialise le générateur de rapports.
+        
+        Args:
+            output_dir: Répertoire de sortie pour les rapports et figures
+        """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Set plotting style
+        # Configurer le style des graphiques
         if MATPLOTLIB_AVAILABLE:
             sns.set_style("whitegrid")
             plt.rcParams['figure.figsize'] = (10, 6)
@@ -645,16 +670,32 @@ Higher values indicate better oracle generation quality.
         return output_path
 
 
-def generate_sample_report():
-    """Generate sample report from mock data."""
-    # This would normally use real experiment results
-    # For now, create a minimal structure for demonstration
+def print_usage_instructions():
+    """
+    Affiche les instructions d'utilisation du générateur de rapports.
     
-    print("Note: This is a demonstration. Real reports require running experiments first.")
-    print("To generate real reports:")
-    print("  1. Run experiments using RQ1Orchestrator")
-    print("  2. Pass BatchExperimentResults to RQ1ReportGenerator.generate_full_report()")
+    Cette fonction guide l'utilisateur sur comment générer des rapports
+    à partir des résultats d'expériences réelles.
+    """
+    print("=" * 60)
+    print("RQ1 Report Generator - Instructions")
+    print("=" * 60)
+    print()
+    print("Pour générer des rapports, exécutez d'abord les expériences RQ1 :")
+    print()
+    print("  1. Exécuter l'orchestrateur RQ1 :")
+    print("     python -m experiments.rq1_orchestrator")
+    print()
+    print("  2. Les rapports seront générés automatiquement dans :")
+    print("     experiments/results/rq1/")
+    print()
+    print("  3. Pour une analyse approfondie, utilisez le notebook :")
+    print("     experiments/notebooks/rq1_oracle_analysis.ipynb")
+    print()
+    print("Note: Ce module utilise uniquement des modèles Ollama locaux.")
+    print("      Assurez-vous qu'Ollama est en cours d'exécution.")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
-    generate_sample_report()
+    print_usage_instructions()

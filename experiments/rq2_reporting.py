@@ -1,17 +1,25 @@
 """
+===============================================================================
 Reporting and Visualization for RQ2 Consistency Experiments
+===============================================================================
 
-Creates publication-ready visualizations and reports:
-- Coherence score comparison charts
-- Inconsistency pattern analysis
-- Coverage ratio visualizations (Java/Gherkin)
-- Statistical significance tables
-- LaTeX tables for academic papers
-- Interactive HTML dashboards
-- CSV exports for further analysis
+OBJECTIF:
+    Générer des visualisations et rapports de qualité publication pour RQ2:
+    - Graphiques comparatifs des scores de cohérence
+    - Analyse des patterns d'incohérence
+    - Visualisation des ratios de couverture (Java/Gherkin)
+    - Tableaux de significativité statistique
+    - Tableaux LaTeX pour articles scientifiques
+    - Dashboards HTML interactifs
+    - Exports CSV pour analyses complémentaires
 
-Author: Aurel IKAMA HONEY
+USAGE:
+    Ce module est appelé après l'exécution des expériences RQ2.
+    Les données proviennent des vrais agents (pas de simulation).
+
+Auteur: Aurel IKAMA HONEY
 Date: December 11, 2025
+===============================================================================
 """
 import json
 from dataclasses import dataclass
